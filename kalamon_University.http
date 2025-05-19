@@ -1,0 +1,6 @@
+@kalamon_University_HostAddress = http://localhost:5258
+
+GET {{kalamon_University_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
