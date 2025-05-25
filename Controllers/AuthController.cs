@@ -2,6 +2,7 @@
 using kalamon_University.DTOs;
 using kalamon_University.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]

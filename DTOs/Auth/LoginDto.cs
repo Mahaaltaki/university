@@ -1,4 +1,4 @@
-﻿namespace kalamon_University.Models.Entities
+﻿namespace kalamon_University.DTOs.Auth
 {
     public class LoginDto
     {

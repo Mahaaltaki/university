@@ -1,8 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using kalamon_University.Models.Entities;
-namespace Kalanon_University.Data
+namespace kalamon_University.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : DbContext, IdentityDbContext<User, IdentityRole<Guid>, Guid>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options) { }
@@ -11,47 +13,51 @@ namespace Kalanon_University.Data
         public DbSet<Professor> Professors { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<Notification> Notifications { get; set; }
-        public DbSet<StudentCourse> StudentCourses { get; set; }
+        public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Warning> Warnings { get; set; }
-        public DbSet<User> Users { get; set; } 
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // مفاتيح أساسية
-            modelBuilder.Entity<Student>()
-                .HasKey(s => s.UserID);
+            base.OnModelCreating(builder);
 
-            modelBuilder.Entity<Professor>()
-                .HasKey(p => p.UserID);
+            // Composite key for Enrollment
+            builder.Entity<Enrollment>()
+                .HasKey(e => new { e.StudentId, e.CourseId });
 
-            modelBuilder.Entity<StudentCourse>()
-                .HasKey(sc => new { sc.StudentID, sc.CourseID });
+            // Relationships
+            builder.Entity<Enrollment>()
+                .HasOne(e => e.Student)
+                .WithMany(s => s.Enrollments)
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict); // Or Cascade if appropriate
 
-            // تحويل Enum Role إلى نص
-            modelBuilder.Entity<User>()
-                .Property(u => u.Role)
-                .HasConversion<string>();
-            //تحويل Enum Attendance إلى نص
-            modelBuilder.Entity<Attendance>()
-           .Property(a => a.Status)
-           .HasConversion<string>();
+            builder.Entity<Enrollment>()
+                .HasOne(e => e.Course)
+                .WithMany(c => c.Enrollments)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<Course>()
+                .HasOne(c => c.Professor)
+                .WithMany(d => d.TaughtCourses)
+                .HasForeignKey(c => c.ProfessorId);
 
-            // علاقة 1:1 بين User و Student
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Student)
-                .WithOne(s => s.User)
-                .HasForeignKey<Student>(s => s.UserID);
+            builder.Entity<Student>()
+                .HasOne(s => s.User)
+                .WithOne() // Assuming one ApplicationUser maps to one Student profile
+                .HasForeignKey<Student>(s => s.UserId);
 
-            // علاقة 1:1 بين User و Professor
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Professor)
-                .WithOne(p => p.User)
-                .HasForeignKey<Professor>(p => p.UserID);
+            builder.Entity<Professor>()
+                .HasOne(d => d.User)
+                .WithOne() // Assuming one ApplicationUser maps to one Professor profile
+                .HasForeignKey<Professor>(d => d.UserId);
 
-
-            base.OnModelCreating(modelBuilder);
-        }
-    }
-}
+            // Seed Roles
+            builder.Entity<IdentityRole<Guid>>().HasData(
+                new IdentityRole<Guid> { Id = Guid.NewGuid(), Name = "Admin", NormalizedName = "ADMIN" },
+                new IdentityRole<Guid> { Id = Guid.NewGuid(), Name = "Professor", NormalizedName = "Professor" },
+                new IdentityRole<Guid> { Id = Guid.NewGuid(), Name = "Student", NormalizedName = "STUDENT" }
+            );
+        } }

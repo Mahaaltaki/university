@@ -6,17 +6,19 @@ namespace kalamon_University.Models.Entities
 {
     public class Professor
     {
+        public Guid Id { get; set; } // PK
+
         [Key, ForeignKey("User")]
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
 
         [Required]
         [StringLength(100)]
         public string Specialization { get; set; } = string.Empty;
 
         // علاقة 1:1 مع User
-        public User User { get; set; } = null!;
+        public User User { get; set; } ;
 
         // علاقة 1:N مع Course
-        public ICollection<Course> Courses { get; set; } = new List<Course>();
+        public virtual ICollection<Course> TaughtCourses { get; set; } = new List<Course>();
     }
 }

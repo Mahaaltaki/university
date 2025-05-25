@@ -1,36 +1,25 @@
 ﻿using Kalanon_University.Data;
 using Microsoft.EntityFrameworkCore;
 using kalamon_University.Interfaces;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 namespace kalamon_University.Repository
 {
-    public class GenericRepository<T> : IRepository<T> where T : class
+    public class GenericRepository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntity : class
     {
         protected readonly AppDbContext _context;
-        protected readonly DbSet<T> _dbSet;
+        protected readonly DbSet<TEntity> _dbSet;
 
         public GenericRepository(AppDbContext context)
         {
             _context = context;
-            _dbSet = _context.Set<T>();
+            _dbSet = _context.Set<TEntity>();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
-            => await _dbSet.ToListAsync();
-
-        public async Task<T?> GetByIdAsync(int id)
-            => await _dbSet.FindAsync(id);
-
-        public async Task AddAsync(T entity)
-            => await _dbSet.AddAsync(entity);
-
-        public void Update(T entity)
-            => _dbSet.Update(entity);
-
-        public void Delete(T entity)
-            => _dbSet.Remove(entity);
-
-        public async Task SaveChangesAsync()
-            => await _context.SaveChangesAsync();
+        public virtual async Task<TEntity?> GetByIdAsync(TKey id) => await _dbSet.FindAsync(id);
+        public virtual async Task<IEnumerable<TEntity>> GetAllAsync() => await _dbSet.ToListAsync();
+        public virtual async Task AddAsync(TEntity entity) => await _dbSet.AddAsync(entity);
+        public virtual void Update(TEntity entity) => _dbSet.Update(entity);
+        public virtual void Delete(TEntity entity) => _dbSet.Remove(entity);
+        public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
     }
-
-}

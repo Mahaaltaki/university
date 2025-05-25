@@ -1,52 +1,96 @@
-﻿using kalamon_University.Models.Entities;
-using Kalanon_University.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-using kalamon_University.Interfaces;
+﻿//using kalamon_University.Models.Entities;
+//using kalamon_University.Interfaces;
+//using System.Collections.Generic;
+//using System.Threading.Tasks;
+//using System.Security.Cryptography;
+//using Microsoft.AspNetCore.Identity;
+//using Kalanon_University.Data;
 
-public class UserRepository : IRepository<User>, IUserRepository
-{
-    private readonly AppDbContext _context;
-    private readonly DbSet<User> _dbSet;
+//public class UserService : IUserService
+//{
+//    private readonly IUserRepository _userRepository;
+//    private readonly IStudentRepository _studentRepository;
+//    private readonly IProfessorRepository _professorRepository;
 
-    public UserRepository(AppDbContext context)
-    {
-        _context = context;
-        _dbSet = _context.Set<User>();
-    }
+//    public UserService(
+//        IUserRepository userRepository,
+//        IStudentRepository studentRepository,
+//        IProfessorRepository professorRepository)
+//    {
+//        _userRepository = userRepository;
+//        _studentRepository = studentRepository;
+//        _professorRepository = professorRepository;
+//    }
 
-    public async Task<IEnumerable<User>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
+//    public async Task<IEnumerable<User>> GetAllUsersAsync() => await _userRepository.GetAllAsync();
 
-    public async Task<User?> GetByIdAsync(int id)
-    {
-        return await _dbSet.FindAsync(id);
-    }
+//    public async Task<User?> GetUserByIdAsync(int id) => await _userRepository.GetByIdAsync(id);
 
-    public async Task AddAsync(User entity)
-    {
-        await _dbSet.AddAsync(entity);
-    }
+//    public async Task<User?> GetUserByEmailAsync(string email) => await _userRepository.GetByEmailAsync(email);
 
-    public void Update(User entity)
-    {
-        _dbSet.Update(entity);
-    }
+//    public async Task AddUserAsync(User user)
+//    {
+//        await _userRepository.AddAsync(user);
+//        await _userRepository.SaveChangesAsync();
+//    }
 
-    public void Delete(User entity)
-    {
-        _dbSet.Remove(entity);
-    }
+//    public async Task UpdateUserAsync(User user)
+//    {
+//        _userRepository.Update(user);
+//        await _userRepository.SaveChangesAsync();
+//    }
 
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
+//    public async Task DeleteUserAsync(int id)
+//    {
+//        var user = await _userRepository.GetByIdAsync(id);
+//        if (user != null)
+//        {
+//            _userRepository.Delete(user);
+//            await _userRepository.SaveChangesAsync();
+//        }
+//    }
 
-    public async Task<User?> GetByEmailAsync(string email)
-    {
-        return await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
-    }
-}
+//    public async Task<User?> RegisterUserAsync(string name, string email, string password, Role role)
+//    {
+//        var existingUser = await _userRepository.GetByEmailAsync(email);
+//        if (existingUser != null)
+//            return null;
+
+//        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
+//        var user = new User
+//        {
+//            Name = name,
+//            Email = email,
+//            PasswordHash = hashedPassword,
+//            Role = role
+//        };
+
+//        await _userRepository.AddAsync(user);
+//        await _userRepository.SaveChangesAsync();
+
+//        // إنشاء جدول خاص بالطالب أو الدكتور تلقائيًا
+//        if (role == Role.Student)
+//        {
+//            var student = new Student { UserID = user.Id };
+//            await _studentRepository.AddAsync(student);
+//            await _studentRepository.SaveChangesAsync();
+//        }
+//        else if (role == Role.Professor)
+//        {
+//            var professor = new Professor { UserID = user.Id };
+//            await _professorRepository.AddAsync(professor);
+//            await _professorRepository.SaveChangesAsync();
+//        }
+
+//        return user;
+//    }
+
+//    public async Task<User?> AuthenticateAsync(string email, string password)
+//    {
+//        var user = await _userRepository.GetByEmailAsync(email);
+//        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+//            return null;
+
+//        return user;
+//    }
+//}

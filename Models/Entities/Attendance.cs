@@ -7,20 +7,18 @@ namespace kalamon_University.Models.Entities
 {
     public class Attendance
     {
-        [Key]
-        public int AttendanceID { get; set; }
+        public int Id { get; set; } // PK
+        [ForeignKey("StudentId")]
+        public Guid StudentId { get; set; } // FK
+    
+        public virtual Student Student { get; set; }
+        [ForeignKey("CourseId")]
+        public int CourseId { get; set; } // FK
+    
+        public virtual Course Course { get; set; }
 
-        [ForeignKey("Student")]
-        public int StudentID { get; set; }
-
-        [ForeignKey("Course")]
-        public int CourseID { get; set; }
-
-        public DateTime Date { get; set; }
-
-        public AttendanceStatus Status { get; set; }
-
-        public Student Student { get; set; } = null!;
-        public Course Course { get; set; } = null!;
+        public DateTime SessionDate { get; set; }
+        public bool IsPresent { get; set; }
+        public string? Notes { get; set; } // ملاحظات إذا وجدت
     }
 }

@@ -1,88 +1,40 @@
-﻿using kalamon_University.Interfaces;
-using kalamon_University.Models.Entities;
+﻿using kalamon_University.DTOs.Auth;
+using kalamon_University.Enums; 
 
-namespace kalamon_University.Services
+public async Task<User?> RegisterUserAsync(RegisterUserDto dto)
 {
-    public class UserService : IUserService
+    var existingUser = await _userRepository.GetByEmailAsync(dto.Email);
+    if (existingUser != null)
+        return null;
+
+    var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+    var user = new User
     {
+        Name = dto.Name,
+        Email = dto.Email,
+        Password = pssword, // اسم الخاصية يجب أن يكون Password أو PasswordHash حسب كلاس User
+        Role = Enum.TryParse<Role>(dto.Role, out var parsedRole) ? parsedRole : Role.Student
+    };
 
-        // حقن ال Repository عبر الكونستركتور
-        private readonly IUserRepository _userRepository;
-        private readonly IStudentRepository _studentRepository;
-        private readonly IProfessorRepository _professorRepository;
+    await _userRepository.AddAsync(user);
+    await _userRepository.SaveChangesAsync();
 
-        public UserService(
-            IUserRepository userRepository,
-            IStudentRepository studentRepository,
-            IProfessorRepository professorRepository)
+    if (user.Role == Role.Student)
+    {
+        var student = new Student { UserID = user.Id };
+        await _studentRepository.AddAsync(student);
+        await _studentRepository.SaveChangesAsync();
+    }
+    else if (user.Role == Role.Professor)
+    {
+        var professor = new Professor
         {
-            _userRepository = userRepository;
-            _studentRepository = studentRepository;
-            _professorRepository = professorRepository;
-        }
-
-        public async Task<IEnumerable<User>> GetAllUsersAsync()
-        {
-            return await _userRepository.GetAllAsync();
-        }
-
-        public async Task<User?> GetUserByIdAsync(int id)
-        {
-            return await _userRepository.GetByIdAsync(id);
-        }
-
-        public async Task<User?> GetUserByEmailAsync(string email)
-        {
-            return await _userRepository.GetByEmailAsync(email);
-        }
-
-        public async Task AddUserAsync(User user)
-        {
-            // تشفير كلمة المرور
-            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);//تشفير
-
-            await _userRepository.AddAsync(user);
-            await _userRepository.SaveChangesAsync();
-
-            // إنشاء سجل في جدول Student أو Professor حسب الدور
-            if (user.Role == "student")
-            {
-                var student = new Student
-                {
-                    UserID = user.Id // Id يتم توليده بعد SaveChangesAsync
-                };
-                await _studentRepository.AddAsync(student);
-            }
-            else if (user.Role == "professor")
-            {
-                var professor = new Professor
-                {
-                    UserID = user.Id,
-                    Specialization = registerDto.Specialization ?? "Unknown"
-                };
-                await _professorRepository.AddAsync(professor);
-            }
-
-            await _userRepository.SaveChangesAsync(); // حفظ الكل
-        }
-
-
-
-        public async Task UpdateUserAsync(User user)
-        {
-            _userRepository.Update(user);
-            await _userRepository.SaveChangesAsync();
-        }
-
-        public async Task DeleteUserAsync(int id)
-        {
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user != null)
-            {
-                _userRepository.Delete(user);
-                await _userRepository.SaveChangesAsync();
-            }
-        }
+            UserID = user.Id,
+            Specialization = dto.Specialization
+        };
+        await _professorRepository.AddAsync(professor);
+        await _professorRepository.SaveChangesAsync();
     }
 
+    return user;
 }
