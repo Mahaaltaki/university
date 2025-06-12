@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using kalamon_University.Models.Entities;
 
 namespace kalamon_University.Models.Entities
 {

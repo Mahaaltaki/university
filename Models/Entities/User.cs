@@ -1,40 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using kalamon_University.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using kalamon_University.Models.Enums;
 namespace kalamon_University.Models.Entities
 {
-    public class User : IdentityUser<Guid>
+    public class User : IdentityUser<Guid> // IdentityUser<Guid> يوفر Id من نوع Guid
     {
-        public int Id { get; set; }
-        [Required]
-        public string Name { get; set; }
-        [Required]
-        [EmailAddress]
-        public  string Email { get; set; }
-        [Required]
-        public  string PasswordHash { get; set; }
-        public Role Role { get; set; } = Role.Student;
+        // Id موروثة من IdentityUser<Guid>
+        // Email موروثة من IdentityUser
+        // PasswordHash موروثة من IdentityUser
+        // UserName موروثة من IdentityUser (عادةً لاسم تسجيل الدخول)
 
-        /* الطالب يتم تعريفه في جدول Students وله مفتاح أجنبي يشير إلى UserID.
-        الأستاذ كذلك يُخزن في جدول Professors وله مفتاح أجنبي يشير إلى UserID
+        [Required]
+        [StringLength(100)]
+        public string FullName { get; set; }
 
-       User يمكن أن يكون إما مرتبطًا بسجل في Students أو سجل في Professors.
+        // يمكنك إضافة سمات التحقق لـ Email و UserName الموروثتين
+        // عبر التكوين في Identity أو Fluent API إذا لزم الأمر.
 
-    العلاقة اختيارية وليست إلزامية، لذا استخدمنا ? بعد Student وProfessor.
-        */
-        public Student? Student { get; set; }
-        public Professor? Professor { get; set; }
-        //إذا كان دكتور 
-        public virtual
-        ICollection<Course> TaughtCourses
-        { get; set; = new List<Course>();
-        //إذا كان طالب
-        public virtual ICollection<CourseEnrollment> Enrollments { get; set; } = new List<CourseEnrollment>();
+        public Role Role { get; set; } = Role.Student; // تأكد أن enum Role معرف
+
+        // العلاقات الاختيارية
+        public virtual Student? StudentProfile { get; set; }
+        public virtual Professor? ProfessorProfile { get; set; }
+
+        
+        // إذا كان المستخدم طالبًا
+        public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+
         public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
         public virtual ICollection<Warning> WarningsReceived { get; set; } = new List<Warning>();
+
+        // كل مستخدم لديه قائمة من الإشعارات الموجهة إليه
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     }
 }

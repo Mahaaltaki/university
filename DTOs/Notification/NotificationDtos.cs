@@ -1,35 +1,31 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-
+using kalamon_University.Models.Entities;
 namespace kalamon_University.DTOs.Notification
-
-public record NotificationDto(
-    int Id,
-    Guid TargetUserId,
-    string Message,
-    DateTime DateSent,
-    bool IsRead,
-    string? RelatedEntityType, // e.g., "Warning", "CourseAnnouncement", "System"
-    int? RelatedEntityId,   // e.g., WarningId, CourseId
-    string? Link // رابط اختياري للانتقال إليه عند الضغط على الإشعار
-);
-
-public record CreateNotificationDto
 {
-    [Required]
-    public Guid TargetUserId { get; set; } // ApplicationUser.Id للمستخدم المستهدف
 
-    [Required]
-    [StringLength(1000, MinimumLength = 5, ErrorMessage = "Notification message must be between 5 and 1000 characters.")]
-    public string Message { get; set; }
+    public class NotificationDto
+    {
+        public int Id { get; set; }
+        public Guid UserId { get; set; }
+        public string Message { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
+        public bool IsRead { get; set; }
+        public string? RelatedEntityType { get; set; }
+        public int? RelatedEntityId { get; set; }
+        public string? RelatedEntityName { get; set; }
 
-    public string? RelatedEntityType { get; set; }
-    public int? RelatedEntityId { get; set; }
-    public string? Link { get; set; }
-}
+        public NotificationDto(Models.Entities.Notification entity)
+        {
+            Id = entity.Id;
+            UserId = entity.UserId;
+            Message = entity.Message;
+            CreatedAt = entity.CreatedAt;
+            IsRead = entity.IsRead;
+            RelatedEntityType = entity.RelatedEntityType;
+            RelatedEntityId = entity.RelatedEntityId;
+            RelatedEntityName = entity.RelatedEntityName;
+        }
+    }
 
-public record MarkNotificationAsReadDto
-{
-    [Required]
-    public int NotificationId { get; set; }
 }

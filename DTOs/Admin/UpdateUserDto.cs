@@ -2,14 +2,14 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace kalamon_University.DTOs.Admin
+namespace kalamon_University.DTOs.Admin;
 public class UpdateUserDto
 {
-    // معلومات ApplicationUser
+    // معلومات User
     [EmailAddress(ErrorMessage = "Invalid email format.")]
     public string? Email { get; set; }
     
-    public string? Name { get; set; }
+    public string? FullName { get; set; }
     public bool? EmailConfirmed { get; set; }
     public bool? LockoutEnabled { get; set; } // للتحكم في قفل الحساب
     public DateTimeOffset? LockoutEnd { get; set; } // لتحديد تاريخ انتهاء القفل (null لإلغاء القفل)
@@ -33,4 +33,4 @@ public class UpdateUserDto
     // ملاحظة: عند التعديل، يجب أن يعرف الـ Service Layer نوع المستخدم (طالب/دكتور)
     // ليقوم بتحديث الجدول الصحيح (Students أو professor  إلى User.
     // يمكن تمرير UserType كـ query parameter أو استنتاجه من الأدوار.
-}
+};

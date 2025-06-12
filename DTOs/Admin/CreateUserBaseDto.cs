@@ -1,5 +1,5 @@
 ﻿
-
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace kalamon_University.DTOs.Admin;
@@ -16,7 +16,7 @@ public abstract class CreateUserBaseDto
     public string Password { get; set; }
 
     [Required(ErrorMessage = "Full name is required.")]
-    public string FullName { get; set; }
+    public string FullName { get; set; }="null";
 
     public string? UserName { get; set; } // اختياري، يمكن أن يكون نفس الإيميل
     public bool EmailConfirmed { get; set; } = true; // الأدمن قد يؤكد الإيميل مباشرة
@@ -26,16 +26,15 @@ public abstract class CreateUserBaseDto
 public class CreateStudentByAdminDto : CreateUserBaseDto
 {
     [Required(ErrorMessage = "Student ID number is required.")]
-    public string StudentIdNumber { get; set; }
-    // يمكنك إضافة أي حقول أخرى خاصة بالطالب يريد الأدمن إدخالها عند الإنشاء
-    // public string? Department { get; set; }
+    public string UserId { get; set; }
+    
 }
 
 // DTO لإنشاء دكتور بواسطة الأدمن
-public class CreateDoctorByAdminDto : CreateUserBaseDto
+public class CreateProfessorByAdminDto : CreateUserBaseDto
 {
     [Required(ErrorMessage = "Staff ID number is required.")]
-    public string StaffIdNumber { get; set; }
+    public string UserId { get; set; }
     public string? Specialization { get; set; }
     // يمكنك إضافة أي حقول أخرى خاصة بالدكتور يريد الأدمن إدخالها عند الإنشاء
     // public string? OfficeNumber { get; set; }

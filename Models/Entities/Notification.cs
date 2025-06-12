@@ -1,17 +1,25 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-namespace UniversityApi.Core.Entities;
-
-public class Notification
+namespace kalamon_University.Models.Entities
 {
-    public int Id { get; set; }
-    [ForeignKey("TargetUserId")]
-    public Guid TargetUserId { get; set; } // FK to ApplicationUser (الطالب أو الدكتور المستهدف)
 
-    public virtual User TargetUser { get; set; }
-    public string Message { get; set; }
-    public DateTime DateSent { get; set; } = DateTime.UtcNow;
-    public bool IsRead { get; set; } = false;
-    public string? RelatedEntityType { get; set; } // e.g., "Warning", "Course"
-    public int? RelatedEntityId { get; set; }   // e.g., WarningId, CourseId
+    public class Notification
+    {
+        public int Id { get; set; }
+
+        public Guid UserId { get; set; } // المفتاح الأجنبي للمستخدم المستهدف
+
+        [ForeignKey("UserId")]
+        public User TargetUser { get; set; } = null!; // خاصية التنقل إلى المستخدم المستلم
+
+        public string Message { get; set; } = null!;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsRead { get; set; } = false;
+        public string? RelatedEntityName { get; set; }
+        public string? RelatedEntityType { get; set; }
+        public int? RelatedEntityId { get; set; }
+    }
+
 }

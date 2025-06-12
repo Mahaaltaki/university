@@ -1,41 +1,32 @@
-﻿// kalamon_University.Core/Interfaces/IExcelProcessingService.cs
-using kalamon_University.DTOs.Attendance; // For AttendanceRecordDto or similar import DTO
-using kalamon_University.DTOs.Course; // For StudentBasicInfoDto or similar export DTO
-using kalamon_University.DTOs.Common;
-
-// --- DTOs for Excel Processing ---
-// (Define these in kalamon_University/DTOs/Excel/ or relevant DTO folders)
-// namespace kalamon_University.DTOs.Excel;
-// public record StudentBasicInfoDto(string StudentIdNumber, string Name); // For generating attendance sheet
-// public record ExcelAttendanceRecordDto(string StudentId, DateTime SessionDate, bool IsPresent, string? Notes); // For parsing attendance sheet
-
-namespace kalamon_University.Core.Interfaces.Services;
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using kalamon_University.DTOs.Common;
-using kalamon_University.DTOs.Excel; // Assuming DTOs are in this namespace
+using kalamon_University.DTOs.Common; // For ServiceResult
+using kalamon_University.DTOs.Excel;  // For StudentBasicInfoDto and ExcelStudentAttendanceDto
 
+namespace kalamon_University.Interfaces;
+
+/// واجهة تحدد العمليات المتعلقة بتوليد وقراءة ملفات Excel.
 public interface IExcelProcessingService
 {
-    /// <summary>
-    /// Generates an Excel file (as byte array) for an attendance sheet for a given course.
-    /// The sheet will list students and have columns for the Professor to fill in attendance.
-    /// </summary>
-    /// <param name="students">List of students to include in the sheet.</param>
-    /// <param name="courseId">Identifier for the course (for naming or context).</param>
-    /// <returns>A ServiceResult containing the byte array of the Excel file or errors.</returns>
-    ServiceResult<byte[]> GenerateAttendanceSheetTemplate(IEnumerable<StudentBasicInfoDto> students, int courseId);
+    /// يقوم بتوليد قالب ملف Excel (بصيغة byte array) لورقة الحضور لكورس معين.
+    /// ستحتوي الورقة على قائمة بالطلاب وأعمدة ليقوم الدكتور بتعبئة الحضور.
+    /// <param name="students">قائمة بالطلاب المراد تضمينهم في الورقة (بمعلوماتهم الأساسية).</param>
+    /// <param name="courseId">معرف الكورس (يُستخدم للتسمية أو السياق).</param>
+    /// <returns>
+    /// كائن <see cref="ServiceResult{TData}"/> يحتوي على byte array لملف Excel في حالة النجاح،
+    /// أو قائمة بالأخطاء في حالة الفشل.
+    /// </returns>
+    ServiceResult<byte[]> GenerateAttendanceSheetTemplate(IEnumerable<DTOs.Student.StudentProfileDto> students, int courseId);
 
-    /// <summary>
-    /// Parses an uploaded Excel attendance sheet.
-    /// </summary>
-    /// <param name="excelStream">The stream of the uploaded Excel file.</param>
-    /// <param name="courseId">The course ID to associate the attendance records with.</param>
-    /// <returns>A ServiceResult containing a list of parsed attendance records or errors.</returns>
-    ServiceResult<IEnumerable<ExcelAttendanceRecordDto>> ParseAttendanceSheet(Stream excelStream, int courseId);
+    /// يقوم بتحليل (parsing) ملف Excel الخاص بالحضور الذي تم رفعه.
+    /// يقرأ البيانات من الملف ويحولها إلى قائمة من كائنات DTOs.
+    /// <param name="excelStream">Stream لملف Excel المرفوع.</param>
+    /// <param name="courseId">معرف الكورس لربط سجلات الحضور به.</param>
+    /// <returns>
+    /// كائن <see cref="ServiceResult{TData}"/> يحتوي على قائمة من <see cref="ExcelStudentAttendanceDto"/>
+    /// تمثل سجلات الحضور المقروءة في حالة النجاح (قد يتضمن أخطاء جزئية إذا تم تحليل بعض الصفوف فقط)،
+    /// أو قائمة بالأخطاء في حالة فشل التحليل بشكل كامل.
+    /// </returns>
+    ServiceResult<IEnumerable<ExcelStudentAttendanceDto>> ParseAttendanceSheet(Stream excelStream, int courseId);
 
-    // Potentially other Excel generation/parsing methods:
-    // ServiceResult<byte[]> GenerateStudentGradesReport(int courseId, IEnumerable<StudentGradeDto> grades);
-    // ServiceResult<IEnumerable<NewStudentDto>> ParseStudentImportSheet(Stream excelStream);
 }

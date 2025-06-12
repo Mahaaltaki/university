@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using kalamon_University.Models.Entities;
 
 namespace kalamon_University.Models.Entities
 {
     public class Student
     {
-        public Guid Id { get; set; } // PK
-        [ForeignKey("User")]
-        ppublic Guid UserId { get; set; } // FK to ApplicationUser
-        //العلاقة "طالب ينتمي إلى مستخدم" (
-        public virtual User User { get; set; }
+        [Key]
+        [ForeignKey("User")] // يشير إلى الخاصية الملاحية "User" أدناه
+        public Guid UserId { get; set; } // PK & FK
+
+        //العلاقة "طالب ينتمي إلى مستخدم"
+        public virtual User User { get; set; } = null!;
 
         // علاقة واحد إلى متعدد (One-to-Many): طالب يمكنه الالتحاق بعدة مواد
         public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();

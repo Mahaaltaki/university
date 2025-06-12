@@ -1,11 +1,19 @@
-﻿namespace kalamon_University.Interfaces;
+﻿// In: kalamon_University/Interfaces/IRepository.cs
 
-public interface IRepository<TEntity, TKey> where TEntity : class
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace kalamon_University.Interfaces
 {
-    Task<TEntity?> GetByIdAsync(TKey id);
-    Task<IEnumerable<TEntity>> GetAllAsync();
-    Task AddAsync(TEntity entity);
-    void Update(TEntity entity); // EF Core tracks changes, so often just modification is enough
-    void Delete(TEntity entity);
-    Task<int> SaveChangesAsync(); // Unit of Work
+    // TEntity: هو نوع الشيء الذي سنتعامل معه (مثل Course أو Student)
+    // TKey: هو نوع المفتاح الخاص به (مثل int أو Guid)
+    public interface IRepository<TEntity, TKey> where TEntity : class
+    {
+        Task<TEntity?> GetByIdAsync(TKey id);
+        Task<IEnumerable<TEntity>> GetAllAsync();
+        Task AddAsync(TEntity entity);
+        void Update(TEntity entity);
+        void Delete(TEntity entity);
+        Task SaveChangesAsync();
+    }
 }

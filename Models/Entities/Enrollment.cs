@@ -3,7 +3,8 @@ using kalamon_University.Models.Entities;
 
 namespace kalamon_University.Models.Entities
 {
-    public class Enrollments
+    public class Enrollment
+
     {
         [ForeignKey("StudentId")]
         public Guid StudentId { get; set; } // Composite PK, FK

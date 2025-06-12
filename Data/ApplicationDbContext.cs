@@ -11,6 +11,9 @@ namespace kalamon_University.Data
         }
 
         public DbSet<User> Users { get; set; }
-        // أضف بقية DbSets هنا
+        public DbSet<Student> Students { get; set; }
+        public DbSet<Course> Courses { get; set; }
+        public DbSet<Professor> Professors { get; set; }
+        public DbSet<Enrollment> Enrollments { get; set; }
     }
 }
