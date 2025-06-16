@@ -92,7 +92,6 @@
         </div>
     </div>
 
-    <!-- ======================= الجزء المفقود: Modal لإضافة وتعديل المستخدم ======================= -->
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -136,15 +135,13 @@
             </div>
         </div>
     </div>
-    <!-- ======================= نهاية الجزء المفقود ======================= -->
-
+    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // === الجزء المفقود: دوال الجافاسكريبت الكاملة ===
-
+       
         let authToken = null;
-        let userModal; // متغير لحفظ نسخة الـ Modal
+        let userModal; // متغير لحفظ نسخة الـ Model
 
         const loginOverlay = document.getElementById('loginOverlay');
         const mainContent = document.getElementById('mainContent');
@@ -348,7 +345,7 @@
                 document.getElementById('roleName').value = user.role;
                 document.getElementById('specialization').value = user.specialization || '';
 
-                document.getElementById('passwordGroup').style.display = 'none'; // لا نعدل كلمة المرور من هنا
+                document.getElementById('passwordGroup').style.display = 'none'; 
                 document.getElementById('roleName').disabled = true;
 
                 toggleSpecialization();
