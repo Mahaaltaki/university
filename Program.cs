@@ -75,6 +75,9 @@ builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IProfessorRepository, ProfessorRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IExcelProcessingService, ExcelProcessingService>();
+builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IProfessorService, ProfessorService>();
+builder.Services.AddScoped < kalamon_University.Interfaces.IAuthService,kalamon_University.Services.AuthService>();
 
 // 6. AutoMapper Configuration
 // Ì»ÕÀ ›Ì «·„‘—Ê⁄ »√ﬂ„·Â ⁄‰ √Ì ﬂ·«” Ì—À „‰ AutoMapper.Profile
@@ -122,9 +125,28 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication(); // <-- ÌÃ» √‰  ﬂÊ‰ ﬁ»· UseAuthorization
+app.UseAuthentication();
+app.UseStaticFiles();
+
+// ==>  ”ÌÃ⁄· «·„‘—Ê⁄ Ì› Õ index.html  ·ﬁ«∆Ì« ⁄‰œ “Ì«—… «·—«»ÿ «·√”«”Ì
+app.UseDefaultFiles();
+
+// ...
 app.UseAuthorization();
-
-app.MapControllers();
-
+app.MapControllers(); // Â–« «·”ÿ— Ì›⁄¯· «·‹ API Controllers «·Œ«’… »ﬂ
+// Â–« «·Ã“¡ ÌﬁÊ„ » ‘€Ì· ⁄„·Ì… »–— «·»Ì«‰« 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        // «” œ⁄«¡ œ«·… «·»–— «· Ì √‰‘√‰«Â«
+        await DbInitializer.SeedAdminAsync(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
 app.Run();

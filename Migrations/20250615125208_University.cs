@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace kalamon_University.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateUniversity : Migration
+    public partial class University : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,10 +33,10 @@ namespace kalamon_University.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     Role = table.Column<int>(type: "int", nullable: false),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -356,9 +356,9 @@ namespace kalamon_University.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { new Guid("3f07793f-b956-4ea0-a9d7-b829c7ed3416"), null, "Student", "STUDENT" },
-                    { new Guid("5aef8050-b6e3-4547-9119-8a693357ddee"), null, "Professor", "PROFESSOR" },
-                    { new Guid("ebd9cf6c-982b-4ffb-8db6-da9c565d4670"), null, "Admin", "ADMIN" }
+                    { new Guid("48f0d3ee-2cfc-410d-857a-a705b19b52d5"), null, "Professor", "PROFESSOR" },
+                    { new Guid("b0fab5a7-3080-4253-bc45-f190cdf8db0c"), null, "Student", "STUDENT" },
+                    { new Guid("dee21640-1a17-41fc-8fa3-f00bb5d3917f"), null, "Admin", "ADMIN" }
                 });
 
             migrationBuilder.CreateIndex(

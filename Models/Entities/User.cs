@@ -16,8 +16,10 @@ namespace kalamon_University.Models.Entities
         [StringLength(100)]
         public string FullName { get; set; }
 
-        // يمكنك إضافة سمات التحقق لـ Email و UserName الموروثتين
-        // عبر التكوين في Identity أو Fluent API إذا لزم الأمر.
+        // خاصية Email موجودة وموروثة من IdentityUser، يمكنك عمل override لها كما فعلت
+        [Required]
+        [EmailAddress]
+        public override string Email { get; set; }
 
         public Role Role { get; set; } = Role.Student; // تأكد أن enum Role معرف
 

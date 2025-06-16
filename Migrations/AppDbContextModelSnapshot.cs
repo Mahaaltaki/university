@@ -17,7 +17,7 @@ namespace kalamon_University.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -52,19 +52,19 @@ namespace kalamon_University.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("ebd9cf6c-982b-4ffb-8db6-da9c565d4670"),
+                            Id = new Guid("dee21640-1a17-41fc-8fa3-f00bb5d3917f"),
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = new Guid("5aef8050-b6e3-4547-9119-8a693357ddee"),
+                            Id = new Guid("48f0d3ee-2cfc-410d-857a-a705b19b52d5"),
                             Name = "Professor",
                             NormalizedName = "PROFESSOR"
                         },
                         new
                         {
-                            Id = new Guid("3f07793f-b956-4ea0-a9d7-b829c7ed3416"),
+                            Id = new Guid("b0fab5a7-3080-4253-bc45-f190cdf8db0c"),
                             Name = "Student",
                             NormalizedName = "STUDENT"
                         });
@@ -352,6 +352,7 @@ namespace kalamon_University.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 

@@ -10,7 +10,7 @@ using kalamon_University.Models.Entities;
 using kalamon_University.Interfaces;
 using kalamon_University.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Linq; // <-- إضافة: قد تحتاجها لـ .Select
+using System.Linq; 
 
 namespace kalamon_University.Services
 {
@@ -47,7 +47,7 @@ namespace kalamon_University.Services
 
         // --- User Management ---
 
-        // <-- تصحيح: جعل هذه الدوال خاصة (private) لأنها دوال مساعدة لـ CreateUserAsync
+        // جعل هذه الدوال خاصة (private) لأنها دوال مساعدة لـ CreateUserAsync
         private async Task<ServiceResult<UserDetailDto>> CreateStudentAsync(CreateStudentByAdminDto studentDto)
         {
             _logger.LogInformation("Attempting to create student with email {Email}", studentDto.Email);
@@ -85,8 +85,8 @@ namespace kalamon_University.Services
 
                 var userDetail = _mapper.Map<UserDetailDto>(studentUser);
                 userDetail.StudentProfileId = studentProfile.UserId;
-                userDetail.Roles = await _userManager.GetRolesAsync(studentUser);
-
+                var roles = await _userManager.GetRolesAsync(studentUser);
+                userDetail.Role = roles.FirstOrDefault(); // أخذ الدور الأول من القائمة
                 _logger.LogInformation("Successfully created student with ID {StudentId} and UserID {AppUserId}", studentProfile.UserId, studentUser.Id);
                 return ServiceResult<UserDetailDto>.Succeeded(userDetail, "Student created successfully.");
             }
@@ -140,8 +140,8 @@ namespace kalamon_University.Services
                 var userDetail = _mapper.Map<UserDetailDto>(professorUser);
                 userDetail.ProfessorProfileId = professorProfile.UserId;
                 userDetail.Specialization = professorProfile.Specialization;
-                userDetail.Roles = await _userManager.GetRolesAsync(professorUser);
-
+                var roles = await _userManager.GetRolesAsync(professorUser);
+                userDetail.Role = roles.FirstOrDefault(); // أخذ الدور الأول من القائمة
                 _logger.LogInformation("Successfully created professor with ID {ProfessorId} and UserID {AppUserId}", professorProfile.UserId, professorUser.Id);
                 return ServiceResult<UserDetailDto>.Succeeded(userDetail, "Professor created successfully.");
             }
@@ -192,10 +192,12 @@ namespace kalamon_University.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            var dto = _mapper.Map<UserDetailDto>(user);
-            dto.Roles = roles;
+            var userRole = roles.FirstOrDefault(); // تعريف متغير جديد للدور
 
-            if (roles.Contains("Student"))
+            var dto = _mapper.Map<UserDetailDto>(user);
+            dto.Role = userRole; // إسناد الدور الصحيح
+
+            if (roles.Contains("Student")) // استخدم القائمة roles للتحقق
             {
                 var student = await _studentRepository.GetByUserIdAsync(user.Id);
                 if (student != null)
@@ -203,7 +205,7 @@ namespace kalamon_University.Services
                     dto.StudentProfileId = student.UserId;
                 }
             }
-            else if (roles.Contains("Professor"))
+            else if (roles.Contains("Professor")) // استخدم القائمة roles للتحقق
             {
                 var prof = await _professorRepository.GetByUserIdAsync(user.Id);
                 if (prof != null)
@@ -234,9 +236,10 @@ namespace kalamon_University.Services
             foreach (var user in users)
             {
                 var dto = _mapper.Map<UserDetailDto>(user);
-                dto.Roles = await _userManager.GetRolesAsync(user);
+                var roles = await _userManager.GetRolesAsync(user);
+                dto.Role = roles.FirstOrDefault(); // أخذ الدور الأول من القائمة
 
-                if (dto.Roles.Contains("Student"))
+                if (dto.Role.Contains("Student"))
                 {
                     var student = await _studentRepository.GetByUserIdAsync(user.Id);
                     if (student != null)
@@ -244,7 +247,7 @@ namespace kalamon_University.Services
                         dto.StudentProfileId = student.UserId;
                     }
                 }
-                else if (dto.Roles.Contains("Professor"))
+                else if (dto.Role.Contains("Professor"))
                 {
                     var prof = await _professorRepository.GetByUserIdAsync(user.Id);
                     if (prof != null)
@@ -321,7 +324,6 @@ namespace kalamon_University.Services
 
         // --- Role & Account Management ---
 
-        // <-- تصحيح: إضافة `ServiceResult` وتغليف المنطق
         public async Task<ServiceResult> AssignRoleToUserAsync(Guid userId, string roleName)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -363,8 +365,6 @@ namespace kalamon_University.Services
         }
 
         // --- Course Management by Admin ---
-
-        // <-- إضافة: تنفيذ الدالة الناقصة
         public async Task<ServiceResult<CourseDetailDto>> CreateCourseAsync(CreateCourseDto courseDto)
         {
             var course = _mapper.Map<Course>(courseDto);
@@ -429,7 +429,7 @@ namespace kalamon_University.Services
             return ServiceResult.Succeeded("Course deleted successfully.");
         }
 
-        // <-- تصحيح: إضافة `ServiceResult` وتغليف المنطق
+   
         public async Task<ServiceResult> AssignProfessorToCourseAsync(int courseId, Guid professorUserId)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);

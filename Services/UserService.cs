@@ -84,7 +84,7 @@ namespace kalamon_University.Services
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
-                Roles = new List<string> { user.Role.ToRoleName() },
+                Role = user.Role.ToRoleName() ,
                 Specialization = specialization
             };
         }
@@ -138,7 +138,7 @@ namespace kalamon_University.Services
                     Id = user.Id,
                     FullName = user.FullName,
                     Email = user.Email,
-                    Roles = new List<string> { user.Role.ToRoleName() },
+                    Role =  user.Role.ToRoleName() ,
                     Specialization = specialization
                 });
             }

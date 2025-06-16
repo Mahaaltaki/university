@@ -1,0 +1,227 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل حساب جديد</title>
+
+    <!-- الجزء الأول: التصميم (CSS) -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+            input:focus,
+            select:focus {
+                border-color: #007bff;
+                outline: none;
+            }
+
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+            button:hover {
+                background-color: #0056b3;
+            }
+
+        #message {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-weight: bold;
+            padding: 0.75rem;
+            border-radius: 4px;
+            display: none; /* مخفي بشكل افتراضي */
+        }
+
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- الجزء الثاني: هيكل النموذج (HTML) -->
+    <form id="registerForm">
+        <h2>تسجيل حساب جديد</h2>
+
+        <div class="form-group">
+            <label for="fullName">الاسم الكامل</label>
+            <input type="text" id="fullName" name="FullName" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">البريد الإلكتروني</label>
+            <input type="email" id="email" name="Email" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">كلمة المرور</label>
+            <input type="password" id="password" name="Password" required>
+        </div>
+
+        <div class="form-group">
+            <label for="confirmPassword">تأكيد كلمة المرور</label>
+            <input type="password" id="confirmPassword" name="ConfirmPassword" required>
+        </div>
+
+        <div class="form-group">
+            <label for="roleName">الدور</label>
+            <select id="roleName" name="RoleName">
+                <option value="Student">طالب</option>
+                <option value="Professor">أستاذ</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="specializationGroup" style="display:none;">
+            <label for="specialization">التخصص</label>
+            <input type="text" id="specialization" name="Specialization">
+        </div>
+
+        <button type="submit">تسجيل</button>
+
+        <!-- هذا العنصر لعرض رسائل النجاح أو الفشل -->
+        <div id="message"></div>
+    </form>
+
+    <!-- الجزء الثالث: العقل المدبر (JavaScript) -->
+    <script>
+        // الحصول على العناصر التي سنتعامل معها من الصفحة
+        const roleSelector = document.getElementById('roleName');
+        const specializationGroup = document.getElementById('specializationGroup');
+        const registerForm = document.getElementById('registerForm');
+        const messageDiv = document.getElementById('message');
+
+        // دالة لإظهار أو إخفاء حقل التخصص بناءً على الدور المختار
+        function toggleSpecializationField() {
+            if (roleSelector.value === 'Professor') {
+                specializationGroup.style.display = 'block';
+            } else {
+                specializationGroup.style.display = 'none';
+            }
+        }
+
+        // استدعاء الدالة عند تحميل الصفحة لأول مرة
+        toggleSpecializationField();
+
+        // إضافة مستمع حدث ليستدعي الدالة كلما تغيرت قيمة حقل الدور
+        roleSelector.addEventListener('change', toggleSpecializationField);
+
+        // إضافة مستمع حدث للنموذج عند الضغط على زر "تسجيل"
+        registerForm.addEventListener('submit', async (event) => {
+            // منع السلوك الافتراضي للنموذج (الذي هو إعادة تحميل الصفحة)
+            event.preventDefault();
+
+            // إعادة إخفاء وتفريغ رسالة الحالة عند كل محاولة جديدة
+            messageDiv.style.display = 'none';
+            messageDiv.textContent = '';
+
+            // 1. جمع البيانات من حقول النموذج
+            const formData = new FormData(registerForm);
+            const data = Object.fromEntries(formData.entries());
+
+            // التحقق من تطابق كلمتي المرور قبل الإرسال
+            if (data.Password !== data.ConfirmPassword) {
+                messageDiv.textContent = 'كلمتا المرور غير متطابقتين!';
+                messageDiv.className = 'error';
+                return; // إيقاف التنفيذ
+            }
+
+            // 2. إرسال البيانات إلى الـ API في الخلفية
+            try {
+                // `fetch` يرسل طلب HTTP إلى مسار الـ API الذي أنشأناه
+                const response = await fetch('/api/Auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data) // تحويل كائن JavaScript إلى نص بصيغة JSON
+                });
+
+                // 3. استقبال الرد من الـ API وتحليله
+                const result = await response.json();
+
+                if (response.ok) { // حالة النجاح (status code 2xx)
+                    messageDiv.textContent = result.message || "تم التسجيل بنجاح!";
+                    messageDiv.className = 'success';
+                    registerForm.reset(); // إفراغ حقول النموذج بعد النجاح
+                    toggleSpecializationField(); // التأكد من إخفاء حقل التخصص إذا لزم الأمر
+                } else { // حالة الفشل (status code 4xx or 5xx)
+                    // عرض رسالة الخطأ التي أرسلها الـ API
+                    messageDiv.textContent = result.message || "فشلت العملية. الرجاء المحاولة مرة أخرى.";
+                    messageDiv.className = 'error';
+                }
+            } catch (error) {
+                // في حال وجود خطأ في الشبكة أو عدم القدرة على الاتصال بالخادم
+                console.error('Error during fetch:', error);
+                messageDiv.textContent = 'حدث خطأ في الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.';
+                messageDiv.className = 'error';
+            }
+        });
+    </script>
+</body>
+</html>

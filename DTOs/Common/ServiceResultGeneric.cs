@@ -15,3 +15,6 @@ namespace kalamon_University.DTOs.Common
             => new ServiceResult<TData> { Success = false, Errors = errors.ToList() };
     }
 }
+
+
+

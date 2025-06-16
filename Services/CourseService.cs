@@ -13,9 +13,9 @@ namespace kalamon_University.Services
 {
     public class CourseService : ICourseService
     {
-        private readonly ApplicationDbContext _context; // اسم الـ DbContext الخاص بك
+        private readonly AppDbContext _context; // اسم الـ DbContext الخاص بك
 
-        public CourseService(ApplicationDbContext context)
+        public CourseService(AppDbContext context)
         {
             _context = context;
         }

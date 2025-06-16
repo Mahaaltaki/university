@@ -8,8 +8,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
 
-        // 🔁 عدل الاتصال حسب إعداداتك:
-        optionsBuilder.UseSqlServer("Server=localhost;Database=UniversityDB;Trusted_Connection=True;");
+        optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=UniversityDB;Trusted_Connection=True;");
 
         return new AppDbContext(optionsBuilder.Options);
     }

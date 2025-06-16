@@ -19,8 +19,6 @@ namespace kalamon_University.DTOs.Auth
         [Required]
         public string RoleName { get; set; } // e.g., "Student", "Professor", "Admin"
 
-        // خصائص اختيارية تعتمد على الدور
-        public string? StudentId { get; set; } // إذا كان الدور "Student"
         
         public string? Specialization { get; set; }  // إذا كان الدور "Professor"
     }
