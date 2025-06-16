@@ -47,7 +47,7 @@ namespace kalamon_University.Services
 
         // --- User Management ---
 
-        // جعل هذه الدوال خاصة (private) لأنها دوال مساعدة لـ CreateUserAsync
+        //  هذه الدوال خاصة (private) لأنها دوال مساعدة لـ CreateUserAsync
         private async Task<ServiceResult<UserDetailDto>> CreateStudentAsync(CreateStudentByAdminDto studentDto)
         {
             _logger.LogInformation("Attempting to create student with email {Email}", studentDto.Email);
@@ -308,7 +308,7 @@ namespace kalamon_University.Services
             }
 
             // The related Student/Professor profile will be deleted by the database's cascade delete constraint.
-            // If you don't have cascade delete, you must delete them manually first as in your original code.
+            
 
             var identityResult = await _userManager.DeleteAsync(user);
             if (!identityResult.Succeeded)
@@ -346,7 +346,7 @@ namespace kalamon_University.Services
             return ServiceResult.Succeeded("Role assigned successfully.");
         }
 
-        // <-- تصحيح: إضافة `ServiceResult` وتغليف المنطق
+      
         public async Task<ServiceResult> ConfirmUserEmailByAdminAsync(Guid userId, bool confirmedStatus)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -377,7 +377,7 @@ namespace kalamon_University.Services
             return ServiceResult<CourseDetailDto>.Succeeded(resultDto, "Course created successfully.");
         }
 
-        // <-- إضافة: تنفيذ الدالة الناقصة
+        
         public async Task<ServiceResult<CourseDetailDto>> GetCourseByIdAsync(int courseId)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
@@ -389,7 +389,7 @@ namespace kalamon_University.Services
             return ServiceResult<CourseDetailDto>.Succeeded(dto);
         }
 
-        // <-- تصحيح: تعديل الدالة لتتطابق مع الواجهة
+       
         public async Task<ServiceResult<IEnumerable<CourseDetailDto>>> GetAllCoursesAsync(bool includeProfessorDetails = false)
         {
             var courses = await _courseRepository.GetAllCoursesAsync(includeProfessorDetails);
