@@ -1,0 +1,277 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الطالب</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 960px;
+        }
+
+        .card {
+            margin-bottom: 1.5rem;
+        }
+
+        .course-card {
+            transition: transform 0.2s;
+        }
+
+            .course-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+
+        .btn-enroll {
+            width: 100%;
+        }
+
+        #attendance-table th, #attendance-table td {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">جامعة القلمون</a>
+            <div class="d-flex">
+                <button class="btn btn-outline-light" id="logoutBtn">تسجيل الخروج</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="my-4 text-center">بوابة الطالب</h1>
+
+        <!-- قسم التنبيهات -->
+        <div id="alert-container"></div>
+
+        <!-- قسم الكورسات المسجل بها -->
+        <div class="card">
+            <div class="card-header">
+                <h3>الكورسات المسجل بها</h3>
+            </div>
+            <div class="card-body">
+                <div id="my-courses-list" class="list-group">
+                    <p class="text-muted">يتم الآن تحميل كورساتك...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم عرض سجل الحضور -->
+        <div id="attendance-section" class="card d-none">
+            <div class="card-header">
+                <h3 id="attendance-course-name">سجل الحضور في مادة: </h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped table-hover" id="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>تاريخ الجلسة</th>
+                            <th>الحالة</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-body">
+                        <!-- سيتم ملء البيانات هنا -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- قسم الكورسات المتاحة للتسجيل -->
+        <div class="card">
+            <div class="card-header">
+                <h3>الكورسات المتاحة للتسجيل</h3>
+            </div>
+            <div class="card-body">
+                <div id="available-courses-list" class="row">
+                    <p class="text-muted">يتم الآن تحميل الكورسات المتاحة...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiBaseUrl = '/api/Student';
+            const myCoursesList = document.getElementById('my-courses-list');
+            const availableCoursesList = document.getElementById('available-courses-list');
+            const attendanceSection = document.getElementById('attendance-section');
+            const attendanceCourseName = document.getElementById('attendance-course-name');
+            const attendanceBody = document.getElementById('attendance-body');
+            const alertContainer = document.getElementById('alert-container');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            // --- مهم جدا: إدارة التوكن ---
+            // يجب تخزين التوكن بعد تسجيل الدخول واستخدامه في كل طلب
+            // هنا نفترض أنه مخزن في localStorage
+            const token = localStorage.getItem('jwtToken');
+            if (!token) {
+                // إذا لم يوجد توكن، أعد توجيه المستخدم لصفحة تسجيل الدخول
+                showAlert('يجب تسجيل الدخول أولاً.', 'danger');
+                setTimeout(() => window.location.href = '/login.html', 2000); // افترض وجود صفحة login.html
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('jwtToken');
+                showAlert('تم تسجيل الخروج بنجاح.', 'success');
+                setTimeout(() => window.location.href = '/login.html', 1500);
+            });
+
+
+            // دالة لعرض التنبيهات
+            function showAlert(message, type = 'success') {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                alertContainer.innerHTML = ''; // مسح التنبيهات القديمة
+                alertContainer.append(alertDiv);
+            }
+
+            // 1. جلب وعرض الكورسات المسجل بها الطالب
+            async function fetchMyCourses() {
+                try {
+                    const response = await fetch(`${apiBaseUrl}/my-courses`, { headers });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const courses = await response.json();
+
+                    myCoursesList.innerHTML = ''; // مسح رسالة التحميل
+                    if (courses.length === 0) {
+                        myCoursesList.innerHTML = '<p class="text-muted">أنت غير مسجل في أي كورس حالياً.</p>';
+                        return;
+                    }
+                    courses.forEach(course => {
+                        const courseItem = document.createElement('button');
+                        courseItem.type = 'button';
+                        courseItem.className = 'list-group-item list-group-item-action';
+                        courseItem.textContent = course.name;
+                        courseItem.onclick = () => fetchAttendance(course.id, course.name);
+                        myCoursesList.appendChild(courseItem);
+                    });
+                } catch (error) {
+                    console.error('Failed to fetch my courses:', error);
+                    myCoursesList.innerHTML = '<p class="text-danger">فشل تحميل الكورسات.</p>';
+                }
+            }
+
+            // 2. جلب وعرض الكورسات المتاحة
+            async function fetchAvailableCourses() {
+                try {
+                    const response = await fetch(`${apiBaseUrl}/courses/available`, { headers });
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const courses = await response.json();
+
+                    availableCoursesList.innerHTML = ''; // مسح رسالة التحميل
+                     if (courses.length === 0) {
+                        availableCoursesList.innerHTML = '<p class="text-muted">لا توجد كورسات متاحة للتسجيل حالياً.</p>';
+                        return;
+                    }
+                    courses.forEach(course => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4';
+                        col.innerHTML = `
+                            <div class="card course-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${course.name}</h5>
+                                    <p class="card-text">
+                                        <strong>الأستاذ:</strong> ${course.professor?.user?.fullName || 'غير محدد'}
+                                    </p>
+                                    <button class="btn btn-primary btn-enroll" onclick="enrollInCourse(${course.id})">تسجيل</button>
+                                </div>
+                            </div>
+                        `;
+                        availableCoursesList.appendChild(col);
+                    });
+                } catch (error) {
+                    console.error('Failed to fetch available courses:', error);
+                    availableCoursesList.innerHTML = '<p class="text-danger">فشل تحميل الكورسات المتاحة.</p>';
+                }
+            }
+
+            // 3. التسجيل في كورس
+            window.enrollInCourse = async function(courseId) {
+                if (!confirm('هل أنت متأكد من رغبتك في التسجيل بهذا الكورس؟')) return;
+
+                try {
+                    const response = await fetch(`${apiBaseUrl}/courses/${courseId}/enroll`, {
+                        method: 'POST',
+                        headers
+                    });
+
+                    if (response.ok) {
+                        showAlert('تم التسجيل في الكورس بنجاح!', 'success');
+                        fetchMyCourses(); // تحديث قائمة كورساتي
+                    } else {
+                        const errorText = await response.text();
+                        showAlert(`فشل التسجيل: ${errorText}`, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Enrollment error:', error);
+                    showAlert('حدث خطأ أثناء محاولة التسجيل.', 'danger');
+                }
+            }
+
+            // 4. عرض سجل الحضور
+            async function fetchAttendance(courseId, courseName) {
+                attendanceCourseName.textContent = `سجل الحضور في مادة: ${courseName}`;
+                attendanceBody.innerHTML = '<tr><td colspan="3">جاري تحميل السجل...</td></tr>';
+                attendanceSection.classList.remove('d-none'); // إظهار القسم
+
+                try {
+                    const response = await fetch(`${apiBaseUrl}/courses/${courseId}/attendance`, { headers });
+                    if (!response.ok) throw new Error('Failed to fetch attendance');
+                    const records = await response.json();
+
+                    attendanceBody.innerHTML = '';
+                    if (records.length === 0) {
+                         attendanceBody.innerHTML = '<tr><td colspan="3">لا يوجد سجل حضور لهذه المادة بعد.</td></tr>';
+                         return;
+                    }
+                    records.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${new Date(record.sessionDate).toLocaleDateString('ar-EG')}</td>
+                            <td>
+                                <span class="badge ${record.isPresent ? 'bg-success' : 'bg-danger'}">
+                                    ${record.isPresent ? 'حاضر' : 'غائب'}
+                                </span>
+                            </td>
+                            <td>${record.notes || '-'}</td>
+                        `;
+                        attendanceBody.appendChild(row);
+                    });
+                } catch(error) {
+                    console.error('Attendance fetch error:', error);
+                    attendanceBody.innerHTML = '<tr><td colspan="3" class="text-danger">فشل تحميل سجل الحضور.</td></tr>';
+                }
+            }
+
+            // بدء تحميل البيانات عند فتح الصفحة
+            fetchMyCourses();
+            fetchAvailableCourses();
+        });
+    </script>
+
+</body>
+</html>

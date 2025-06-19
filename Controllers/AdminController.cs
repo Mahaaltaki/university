@@ -18,28 +18,46 @@ namespace kalamon_University.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
-
-        public AdminController(IAdminService adminService)
+        private readonly IAuthService _authService;
+        public AdminController(IAdminService adminService, IAuthService authService)
         {
             _adminService = adminService;
+            _authService = authService; // 
         }
 
         #region User Management
 
+        //عرض المستخدمين بناء على الدور 
+        // GET: api/Admin/users
+        [HttpGet("users")]
+        [ProducesResponseType(typeof(IEnumerable<UserDetailDto>), 200)]
+        public async Task<IActionResult> GetAllUsers([FromQuery] string? role)
+        {
+            var result = await _adminService.GetAllUsersAsync(role);
+            return HandleResult(result);
+        }
+
         // POST: api/Admin/users
         [HttpPost("users")]
         [ProducesResponseType(typeof(UserDetailDto), 201)]
-        [ProducesResponseType(typeof(ServiceResult), 400)]
+        [ProducesResponseType(typeof(AuthResultDto), 400)]
         public async Task<IActionResult> CreateUser([FromBody] RegisterDto dto)
         {
             if (!ModelState.IsValid)
             {
                 // تحويل أخطاء ModelState إلى ServiceResult
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                return BadRequest(ServiceResult.Failed(errors));
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(new AuthResultDto { Succeeded = false, Errors = errors });
             }
-            var result = await _adminService.CreateUserAsync(dto);
-            return HandleResult(result, isCreation: true);
+            var result = await _authService.RegisterAsync(dto);
+            if (result.Succeeded)
+            {
+                // عند النجاح، RegisterAsync تُرجع بيانات المستخدم والتوكن
+                // يمكنك إرجاع بيانات المستخدم فقط إذا أردت
+                return CreatedAtAction(nameof(GetUserById), new { userId = result.User.Id }, result.User);
+            }
+
+            return BadRequest(result); // result هنا هو من نوع AuthResultDto ويحتوي على الأخطاء
         }
 
         // GET: api/Admin/users/{userId}
@@ -80,9 +98,7 @@ namespace kalamon_University.Controllers
 
         #endregion
 
-        // ... باقي دوال الـ Actions كما هي بدون تغيير ...
-        // (Region for Role & Account Management, and Course Management)
-
+        
         #region Role & Account Management
 
         // POST: api/Admin/users/{userId}/assign-role
@@ -107,7 +123,77 @@ namespace kalamon_University.Controllers
 
         #endregion
 
-       
+        // POST: api/Admin/courses
+        [HttpPost("courses")]
+        [ProducesResponseType(typeof(CourseDetailDto), 201)]
+        [ProducesResponseType(typeof(ServiceResult), 400)]
+        public async Task<IActionResult> CreateCourse([FromBody] CreateCourseDto dto)
+        {
+            var result = await _adminService.CreateCourseAsync(dto);
+            return HandleResult(result, isCreation: true);
+        }
+
+        // GET: api/Admin/courses
+        [HttpGet("courses")]
+        [ProducesResponseType(typeof(IEnumerable<CourseDetailDto>), 200)]
+        public async Task<IActionResult> GetAllCourses([FromQuery] bool includeProfessorDetails = false)
+        {
+            var result = await _adminService.GetAllCoursesAsync(includeProfessorDetails);
+            return HandleResult(result);
+        }
+
+        // GET: api/Admin/courses/{courseId}
+        [HttpGet("courses/{courseId}")]
+        [ProducesResponseType(typeof(CourseDetailDto), 200)]
+        [ProducesResponseType(typeof(ServiceResult), 404)]
+        public async Task<IActionResult> GetCourseById(int courseId)
+        {
+            var result = await _adminService.GetCourseByIdAsync(courseId);
+            return HandleResult(result);
+        }
+
+        // PUT: api/Admin/courses/{courseId}
+        [HttpPut("courses/{courseId}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(ServiceResult), 400)]
+        [ProducesResponseType(typeof(ServiceResult), 404)]
+        public async Task<IActionResult> UpdateCourse(int courseId, [FromBody] UpdateCourseDto dto)
+        {
+            var result = await _adminService.UpdateCourseAsync(courseId, dto);
+            return HandleResult(result);
+        }
+
+        // DELETE: api/Admin/courses/{courseId}
+        [HttpDelete("courses/{courseId}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(typeof(ServiceResult), 404)]
+        public async Task<IActionResult> DeleteCourse(int courseId)
+        {
+            var result = await _adminService.DeleteCourseAsync(courseId);
+            return HandleResult(result, noContentOnSuccess: true);
+        }
+
+        // POST: api/Admin/courses/{courseId}/assign-professor
+        [HttpPost("courses/{courseId}/assign-professor")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(ServiceResult), 400)]
+        [ProducesResponseType(typeof(ServiceResult), 404)]
+        public async Task<IActionResult> AssignProfessorToCourse(int courseId, [FromBody] AssignProfessorDto dto)
+        {
+            var result = await _adminService.AssignProfessorToCourseAsync(courseId, dto.ProfessorUserId);
+            return HandleResult(result);
+        }
+
+        // DELETE: api/Admin/courses/{courseId}/unassign-professor
+        [HttpDelete("courses/{courseId}/unassign-professor")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(ServiceResult), 404)]
+        public async Task<IActionResult> UnassignProfessorFromCourse(int courseId)
+        {
+            var result = await _adminService.UnassignProfessorFromCourseAsync(courseId);
+            return HandleResult(result);
+        }
+
 
         #region Helper Method 
 
@@ -154,8 +240,8 @@ namespace kalamon_University.Controllers
 
         // GET: api/Admin/dashboard
         [HttpGet("dashboard")]
-        [AllowAnonymous] // للسماح بالوصول للصفحة قبل تسجيل الدخول
-        [ApiExplorerSettings(IgnoreApi = true)] // لإخفاء هذه النقطة من Swagger لأنها ليست API
+        [AllowAnonymous] // للسماح بالوصول للصفحة 
+        [ApiExplorerSettings(IgnoreApi = true)]
         public IActionResult AdminDashboard()
         {
             // سيعيد توجيه المتصفح إلى ملف admin.html الموجود في مجلد wwwroot

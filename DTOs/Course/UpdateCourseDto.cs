@@ -25,7 +25,7 @@ namespace kalamon_University.DTOs.Course
         public int MaxAbsenceLimit { get; set; }
 
         // لا نضع ProfessorUserId هنا، استخدم endpoint منفصل لتعيين/إلغاء تعيين الأستاذ
-        public Guid ProfessorId { get; set; } // ، FK لـ User.Id للأستاذ
+        public Guid? ProfessorId { get; set; } // ، FK لـ User.Id للأستاذ
 
     }
 }

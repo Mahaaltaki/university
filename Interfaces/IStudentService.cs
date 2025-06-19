@@ -1,47 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using kalamon_University.DTOs.Common;
+using kalamon_University.DTOs.Course;
 using kalamon_University.Models.Entities;
 
 namespace kalamon_University.Interfaces
 {
     /// <summary>
-    /// واجهة لخدمات إدارة الطلاب، توفر عمليات الإضافة والقراءة والتعديل والحذف.
+    /// واجهة لخدمات إدارة الطلاب، توفر عمليات الإضافة والقراءة والتعديل والحذف، بالإضافة إلى العمليات الخاصة بالطالب.
     /// </summary>
     public interface IStudentService
     {
-        /// <summary>
-        /// جلب كافة الطلاب من قاعدة البيانات.
-        /// </summary>
-        /// <returns>قائمة تحتوي على جميع الطلاب.</returns>
-        Task<IEnumerable<Student>> GetAllAsync();
+        
+
+
+        #region Student-Specific Operations (العمليات الخاصة بواجهة الطالب)
 
         /// <summary>
-        /// البحث عن طالب محدد باستخدام المعرف الخاص به (UserId).
+        /// جلب جميع الكورسات المتاحة للتسجيل.
         /// </summary>
-        /// <param name="studentId">المعرف الفريد (Guid) للطالب.</param>
-        /// <returns>كائن الطالب إذا تم العثور عليه، وإلا سيعيد null.</returns>
-        Task<Student?> GetByIdAsync(Guid studentId);
+        /// <returns>قائمة بجميع الكورسات.</returns>
+        Task<IEnumerable<CourseDetailDto>> GetAllAvailableCoursesAsync();
 
         /// <summary>
-        /// إضافة طالب جديد إلى قاعدة البيانات.
+        /// تسجيل الطالب الحالي في كورس محدد.
         /// </summary>
-        /// <param name="student">كائن الطالب الذي يحتوي على البيانات الجديدة.</param>
-        /// <returns>كائن الطالب بعد إضافته وحفظه في قاعدة البيانات.</returns>
-        Task<Student> AddAsync(Student student);
+        /// <param name="studentId">معرف الطالب الذي يقوم بالتسجيل.</param>
+        /// <param name="courseId">معرف الكورس المراد التسجيل فيه.</param>
+        /// <returns>True إذا نجحت عملية التسجيل، و False إذا كان مسجلاً بالفعل أو حدث خطأ.</returns>
+        Task<ServiceResult> EnrollInCourseAsync(Guid studentId, int courseId);
 
         /// <summary>
-        /// تعديل بيانات طالب موجود بالفعل في قاعدة البيانات.
+        /// جلب جميع الكورسات التي سجل فيها طالب معين.
         /// </summary>
-        /// <param name="student">كائن الطالب الذي يحتوي على البيانات المحدثة.</param>
-        /// <returns>Task يشير إلى اكتمال العملية.</returns>
-        Task UpdateAsync(Student student);
+        /// <param name="studentId">معرف الطالب.</param>
+        /// <returns>قائمة بالكورسات المسجل بها الطالب.</returns>
+        Task<IEnumerable<Course>> GetMyEnrolledCoursesAsync(Guid studentId);
 
         /// <summary>
-        /// حذف طالب من قاعدة البيانات بناءً على المعرف الخاص به.
+        /// جلب سجل الحضور لطالب معين في كورس محدد.
         /// </summary>
-        /// <param name="studentId">المعرف الفريد (Guid) للطالب المراد حذفه.</param>
-        /// <returns>True إذا تمت عملية الحذف بنجاح، و False إذا لم يتم العثور على الطالب.</returns>
-        Task<bool> DeleteAsync(Guid studentId);
+        /// <param name="studentId">معرف الطالب.</param>
+        /// <param name="courseId">معرف الكورس.</param>
+        /// <returns>قائمة بسجلات الحضور الخاصة بالطالب في ذلك الكورس.</returns>
+        Task<IEnumerable<Attendance>> GetMyAttendanceForCourseAsync(Guid studentId, int courseId);
+
+        #endregion
     }
 }

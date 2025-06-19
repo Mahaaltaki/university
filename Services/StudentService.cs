@@ -1,141 +1,155 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using kalamon_University.Data; // افترض أن DbContext موجود في هذا المسار
+using kalamon_University.Data;
 using kalamon_University.Interfaces;
+using kalamon_University.DTOs.Course;
+using kalamon_University.DTOs.Common;
 using kalamon_University.Models.Entities;
 
-namespace kalamon_University.Services
+    namespace kalamon_University.Services
 {
     /// <summary>
     /// فئة الخدمة التي تنفذ الواجهة IStudentService وتوفر منطق العمل لإدارة الطلاب.
     /// </summary>
     public class StudentService : IStudentService
     {
-        private readonly AppDbContext _context; // سياق قاعدة البيانات
-        private readonly ILogger<StudentService> _logger; // خدمة تسجيل الأخطاء
+        private readonly AppDbContext _context;
+        private readonly ILogger<StudentService> _logger;
 
-        /// <summary>
-        /// المنشئ (Constructor) الذي يقوم بحقن التبعيات المطلوبة.
-        /// </summary>
-        /// <param name="context">سياق قاعدة البيانات للتفاعل معها.</param>
-        /// <param name="logger">خدمة لتسجيل المعلومات والأخطاء.</param>
         public StudentService(AppDbContext context, ILogger<StudentService> logger)
         {
             _context = context;
             _logger = logger;
         }
 
+        #region Student-Specific Operations Implementation
+
         /// <inheritdoc />
-        public async Task<IEnumerable<Student>> GetAllAsync()
+        public async Task<IEnumerable<CourseDetailDto>> GetAllAvailableCoursesAsync()
         {
             try
             {
-                // نستخدم Include لجلب البيانات المرتبطة من جدول Users (Eager Loading)
-                // هذا ضروري لعرض معلومات الطالب مثل الاسم، والتي توجد في كيان User.
-                return await _context.Students
-                                     .Include(s => s.User)
-                                     .AsNoTracking() // يحسن الأداء لعمليات القراءة فقط
+                // استخدم .Select لإنشاء كائن DTO جديد مباشرة من الاستعلام
+                return await _context.Courses
+                                     .Include(c => c.Professor.User) // نحتاج للـ Include للوصول للاسم
+                                     .Select(course => new CourseDetailDto
+                                     {
+                                         Id = course.Id,
+                                         Name = course.Name,
+                                         // هنا نكسر الحلقة: نأخذ الاسم فقط
+                                         ProfessorName = course.Professor != null ? course.Professor.User.FullName : "N/A",
+                                         TheoreticalHours = course.TheoreticalHours,
+                                         PracticalHours = course.PracticalHours
+                                     })
+                                     .AsNoTracking()
                                      .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "حدث خطأ أثناء جلب قائمة جميع الطلاب.");
-                throw; // إعادة رمي الخطأ ليتم التعامل معه في طبقة أعلى (مثل Controller)
+                _logger.LogError(ex, "حدث خطأ أثناء جلب قائمة جميع الكورسات المتاحة.");
+                throw; // أو تعامل مع الخطأ بشكل أفضل
             }
         }
 
         /// <inheritdoc />
-        public async Task<Student?> GetByIdAsync(Guid studentId)
+        public async Task<ServiceResult> EnrollInCourseAsync(Guid studentId, int courseId)
         {
             try
             {
-                return await _context.Students
-                                     .Include(s => s.User)
-                                     .FirstOrDefaultAsync(s => s.UserId == studentId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "حدث خطأ أثناء البحث عن طالب بالمعرف: {StudentId}", studentId);
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<Student> AddAsync(Student student)
-        {
-            if (student == null)
-            {
-                throw new ArgumentNullException(nameof(student));
-            }
-
-            try
-            {
-                await _context.Students.AddAsync(student);
-                await _context.SaveChangesAsync(); // حفظ التغييرات في قاعدة البيانات
-                return student; // إعادة الطالب بعد إضافته
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "حدث خطأ أثناء إضافة طالب جديد.");
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task UpdateAsync(Student student)
-        {
-            if (student == null)
-            {
-                throw new ArgumentNullException(nameof(student));
-            }
-
-            // نبلغ EF Core بأن حالة هذا الكيان هي "معدل"
-            _context.Entry(student).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            // هذا الخطأ يحدث إذا حاول مستخدمان تعديل نفس السجل في نفس الوقت
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError(ex, "حدث خطأ تضارب أثناء تحديث بيانات الطالب ذو المعرف: {StudentId}", student.UserId);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "حدث خطأ أثناء تحديث بيانات الطالب ذو المعرف: {StudentId}", student.UserId);
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<bool> DeleteAsync(Guid studentId)
-        {
-            try
-            {
-                var studentToDelete = await _context.Students.FindAsync(studentId);
-
-                if (studentToDelete == null)
+                // التحقق من وجود الطالب والكورس (خطوة مهمة جداً)
+                var studentExists = await _context.Students.AnyAsync(s => s.UserId == studentId);
+                if (!studentExists)
                 {
-                    _logger.LogWarning("محاولة حذف طالب غير موجود بالمعرف: {StudentId}", studentId);
-                    return false; // الطالب غير موجود
+                    return ServiceResult.Failed("Student not found.");
                 }
 
-                _context.Students.Remove(studentToDelete);
+                var courseExists = await _context.Courses.AnyAsync(c => c.Id == courseId);
+                if (!courseExists)
+                {
+                    return ServiceResult.Failed("Course not found.");
+                }
+
+                // التحقق مما إذا كان الطالب مسجلاً بالفعل
+                var isAlreadyEnrolled = await _context.Enrollments
+                    .AnyAsync(e => e.StudentId == studentId && e.CourseId == courseId);
+
+                if (isAlreadyEnrolled)
+                {
+                    _logger.LogWarning("محاولة تسجيل فاشلة: الطالب {StudentId} مسجل بالفعل في الكورس {CourseId}.", studentId, courseId);
+                    // أرجع رسالة خطأ واضحة
+                    return ServiceResult.Failed("You are already enrolled in this course.");
+                }
+
+                var enrollment = new Enrollment
+                {
+                    StudentId = studentId,
+                    CourseId = courseId,
+                    EnrollmentDate = DateTime.UtcNow
+                };
+
+                await _context.Enrollments.AddAsync(enrollment);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("تم حذف الطالب ذو المعرف: {StudentId} بنجاح.", studentId);
-                return true; // تم الحذف بنجاح
+                _logger.LogInformation("تم تسجيل الطالب {StudentId} بنجاح في الكورس {CourseId}.", studentId, courseId);
+                // أرجع نتيجة نجاح
+                return ServiceResult.Succeeded("Successfully enrolled in the course.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "حدث خطأ أثناء حذف الطالب ذو المعرف: {StudentId}", studentId);
+                _logger.LogError(ex, "حدث خطأ أثناء محاولة تسجيل الطالب {StudentId} في الكورس {CourseId}.", studentId, courseId);
+                // أرجع خطأ عام
+                return ServiceResult.Failed("An unexpected error occurred during enrollment.");
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Course>> GetMyEnrolledCoursesAsync(Guid studentId)
+        {
+            try
+            {
+                // جلب الكورسات من خلال جدول الربط Enrollments
+                return await _context.Enrollments
+               .Where(e => e.StudentId == studentId)
+               .Include(e => e.Course)
+               .ThenInclude(c => c.Professor)
+               .ThenInclude(p => p.User)
+               .Select(e => e.Course)
+               .AsNoTracking()
+               .ToListAsync();
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "حدث خطأ أثناء جلب الكورسات المسجل بها الطالب {StudentId}.", studentId);
                 throw;
             }
         }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Attendance>> GetMyAttendanceForCourseAsync(Guid studentId, int courseId)
+        {
+            try
+            {
+                // جلب سجلات الحضور لطالب معين في كورس معين
+                return await _context.Attendances
+                                     .Where(a => a.StudentId == studentId && a.CourseId == courseId)
+                                     .OrderByDescending(a => a.SessionDate) // ترتيبها حسب التاريخ
+                                     .AsNoTracking()
+                                     .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "حدث خطأ أثناء جلب سجل الحضور للطالب {StudentId} في الكورس {CourseId}.", studentId, courseId);
+                throw;
+            }
+        }
+
+        #endregion
+
+        
     }
 }

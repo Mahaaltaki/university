@@ -12,7 +12,7 @@ namespace kalamon_University.Models.Entities
         public Guid UserId { get; set; } // PK & FK
 
         //العلاقة "طالب ينتمي إلى مستخدم"
-        public virtual User User { get; set; } = null!;
+        public virtual User User { get; set; }
 
         // علاقة واحد إلى متعدد (One-to-Many): طالب يمكنه الالتحاق بعدة مواد
         public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();

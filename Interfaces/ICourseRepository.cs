@@ -8,7 +8,7 @@ namespace kalamon_University.Interfaces
     public interface ICourseRepository
     {
         Task<IEnumerable<Course>> GetAllCoursesAsync(bool includeProfessorDetails = false);
-        Task<Course?> GetByIdAsync(int courseId);
+        Task<Course?> GetByIdAsync(int courseId, bool includeProfessor = false);
         Task AddAsync(Course course);
         void Update(Course course);
         void Delete(Course course);

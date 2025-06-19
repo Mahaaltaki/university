@@ -26,7 +26,7 @@ public abstract class CreateUserBaseDto
 public class CreateStudentByAdminDto : CreateUserBaseDto
 {
     [Required(ErrorMessage = "Student ID number is required.")]
-    public string UserId { get; set; }
+    public Guid UserId { get; set; }
     
 }
 

@@ -37,7 +37,7 @@ namespace kalamon_University.Repository
 
         // --- إضافة: الدوال الناقصة التي يجب تنفيذها ---
 
-        public async Task<Course?> GetByIdAsync(int courseId)
+        public async Task<Course?> GetByIdAsync(int courseId, bool includeProfessor = false)
         {
             return await _context.Courses.FindAsync(courseId);
         }

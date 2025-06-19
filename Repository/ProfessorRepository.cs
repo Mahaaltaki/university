@@ -10,7 +10,10 @@ namespace kalamon_University.Repository
     public class ProfessorRepository : Repository<Professor, Guid>, IProfessorRepository
     {
         protected readonly AppDbContext _context;
-        public ProfessorRepository(AppDbContext context) : base(context) { }
+        public ProfessorRepository(AppDbContext context) : base(context) 
+        {
+            _context = context; // هذا السطر هو الأهم!
+        }
 
         public async Task<Professor?> GetByUserIdAsync(Guid userId)
         {

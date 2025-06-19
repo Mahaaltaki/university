@@ -13,6 +13,7 @@ using kalamon_University.Services;
 using kalamon_University.Repository; // <--  √ﬂœ „‰ ÊÃÊœ using ·„Ã·œ «·‹ Repositories
 using kalamon_University.Infrastructure;
 using kalamon_University.Helpers;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -49,7 +50,11 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = configuration["Jwt:Issuer"],
         ValidAudience = configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"])),
+        //   √ﬂœ „‰ √‰  ⁄ÌÌ‰ «·‹ Claims Ì „ »‘ﬂ· ’ÕÌÕ (⁄«œ… Â–Â ÂÌ «·≈⁄œ«œ«  «·«› —«÷Ì…)
+        //  Ì„ﬂ‰ﬂ ≈÷«› Â« »‘ﬂ· ’—ÌÕ ·· √ﬂœ
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role
     };
 });
 

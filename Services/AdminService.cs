@@ -1,4 +1,5 @@
 ﻿// Kalamon_University/Services/AdminService.cs
+
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,10 @@ using kalamon_University.Models.Entities;
 using kalamon_University.Interfaces;
 using kalamon_University.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Linq; 
+using System.Linq;
+using System;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace kalamon_University.Services
 {
@@ -21,7 +25,7 @@ namespace kalamon_University.Services
         private readonly IStudentRepository _studentRepository;
         private readonly IProfessorRepository _professorRepository;
         private readonly ICourseRepository _courseRepository;
-        private readonly AppDbContext _context;
+        private readonly AppDbContext _context; // AppDbContext is often needed for transactions or complex queries
         private readonly IMapper _mapper;
         private readonly ILogger<AdminService> _logger;
 
@@ -45,143 +49,84 @@ namespace kalamon_University.Services
             _logger = logger;
         }
 
-        // --- User Management ---
+        // --- User Profile Management ---
 
-        //  هذه الدوال خاصة (private) لأنها دوال مساعدة لـ CreateUserAsync
-        private async Task<ServiceResult<UserDetailDto>> CreateStudentAsync(CreateStudentByAdminDto studentDto)
+        public async Task<ServiceResult> CreateStudentProfileAsync(Guid userId)
         {
-            _logger.LogInformation("Attempting to create student with email {Email}", studentDto.Email);
-            var existingUser = await _userManager.FindByEmailAsync(studentDto.Email);
-            if (existingUser != null)
+            _logger.LogInformation("Attempting to create a student profile for UserID {UserId}", userId);
+
+            // 1. Check if the user exists
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
             {
-                _logger.LogWarning("Student creation failed: Email {Email} already exists.", studentDto.Email);
-                return ServiceResult<UserDetailDto>.Failed($"Email '{studentDto.Email}' is already in use.");
+                _logger.LogWarning("Profile creation failed: User with ID {UserId} not found.", userId);
+                return ServiceResult.Failed("User not found.");
             }
 
-            var studentUser = new User
+            // 2. Check if a student profile already exists for this user
+            var existingProfile = await _studentRepository.GetByUserIdAsync(userId);
+            if (existingProfile != null)
             {
-                UserName = studentDto.UserName ?? studentDto.Email,
-                Email = studentDto.Email,
-                FullName = studentDto.FullName,
-                EmailConfirmed = studentDto.EmailConfirmed
-            };
-
-            var identityResult = await _userManager.CreateAsync(studentUser, studentDto.Password);
-            if (!identityResult.Succeeded)
-            {
-                var errors = identityResult.Errors.Select(e => e.Description).ToList();
-                _logger.LogWarning("Student User creation failed for email {Email}. Errors: {Errors}", studentDto.Email, string.Join(", ", errors));
-                return ServiceResult<UserDetailDto>.Failed(errors);
+                _logger.LogWarning("Profile creation failed: Student profile for UserID {UserId} already exists.", userId);
+                return ServiceResult.Failed("Student profile already exists for this user.");
             }
 
-            await _userManager.AddToRoleAsync(studentUser, "Student");
-
-            var studentProfile = new Student { UserId = studentUser.Id };
+            // 3. Create and save the new student profile
+            var studentProfile = new Student { UserId = userId };
 
             try
             {
                 await _studentRepository.AddAsync(studentProfile);
                 await _studentRepository.SaveChangesAsync();
-
-                var userDetail = _mapper.Map<UserDetailDto>(studentUser);
-                userDetail.StudentProfileId = studentProfile.UserId;
-                var roles = await _userManager.GetRolesAsync(studentUser);
-                userDetail.Role = roles.FirstOrDefault(); // أخذ الدور الأول من القائمة
-                _logger.LogInformation("Successfully created student with ID {StudentId} and UserID {AppUserId}", studentProfile.UserId, studentUser.Id);
-                return ServiceResult<UserDetailDto>.Succeeded(userDetail, "Student created successfully.");
+                _logger.LogInformation("Successfully created student profile for UserID {UserId}", userId);
+                return ServiceResult.Succeeded("Student profile created successfully.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating student profile for UserID {AppUserId} after user creation.", studentUser.Id);
-                await _userManager.DeleteAsync(studentUser);
-                return ServiceResult<UserDetailDto>.Failed("An error occurred while creating the student profile. The user account was rolled back.");
+                _logger.LogError(ex, "Error creating student profile for UserID {UserId}", userId);
+                return ServiceResult.Failed("An unexpected error occurred while creating the student profile.");
             }
         }
 
-        private async Task<ServiceResult<UserDetailDto>> CreateProfessorAsync(CreateProfessorByAdminDto professorDto)
+        public async Task<ServiceResult> CreateProfessorProfileAsync(Guid userId, string specialization)
         {
-            _logger.LogInformation("Attempting to create professor with email {Email}", professorDto.Email);
-            var existingUser = await _userManager.FindByEmailAsync(professorDto.Email);
-            if (existingUser != null)
+            _logger.LogInformation("Attempting to create a professor profile for UserID {UserId}", userId);
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
             {
-                _logger.LogWarning("Professor creation failed: Email {Email} already exists.", professorDto.Email);
-                return ServiceResult<UserDetailDto>.Failed($"Email '{professorDto.Email}' is already in use.");
+                _logger.LogWarning("Profile creation failed: User with ID {UserId} not found.", userId);
+                return ServiceResult.Failed("User not found.");
             }
 
-            var professorUser = new User
+            var existingProfile = await _professorRepository.GetByUserIdAsync(userId);
+            if (existingProfile != null)
             {
-                UserName = professorDto.UserName ?? professorDto.Email,
-                Email = professorDto.Email,
-                FullName = professorDto.FullName,
-                EmailConfirmed = professorDto.EmailConfirmed
-            };
-
-            var identityResult = await _userManager.CreateAsync(professorUser, professorDto.Password);
-            if (!identityResult.Succeeded)
-            {
-                var errors = identityResult.Errors.Select(e => e.Description).ToList();
-                _logger.LogWarning("Professor User creation failed for email {Email}. Errors: {Errors}", professorDto.Email, string.Join(", ", errors));
-                return ServiceResult<UserDetailDto>.Failed(errors);
+                _logger.LogWarning("Profile creation failed: Professor profile for UserID {UserId} already exists.", userId);
+                return ServiceResult.Failed("Professor profile already exists for this user.");
             }
-
-            await _userManager.AddToRoleAsync(professorUser, "Professor");
 
             var professorProfile = new Professor
             {
-                UserId = professorUser.Id,
-                Specialization = professorDto.Specialization
+                UserId = userId,
+                Specialization = specialization ?? "Not specified"
             };
 
             try
             {
                 await _professorRepository.AddAsync(professorProfile);
                 await _professorRepository.SaveChangesAsync();
-
-                var userDetail = _mapper.Map<UserDetailDto>(professorUser);
-                userDetail.ProfessorProfileId = professorProfile.UserId;
-                userDetail.Specialization = professorProfile.Specialization;
-                var roles = await _userManager.GetRolesAsync(professorUser);
-                userDetail.Role = roles.FirstOrDefault(); // أخذ الدور الأول من القائمة
-                _logger.LogInformation("Successfully created professor with ID {ProfessorId} and UserID {AppUserId}", professorProfile.UserId, professorUser.Id);
-                return ServiceResult<UserDetailDto>.Succeeded(userDetail, "Professor created successfully.");
+                _logger.LogInformation("Successfully created professor profile for UserID {UserId}", userId);
+                return ServiceResult.Succeeded("Professor profile created successfully.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating professor profile for UserID {AppUserId} after user creation.", professorUser.Id);
-                await _userManager.DeleteAsync(professorUser);
-                return ServiceResult<UserDetailDto>.Failed("An error occurred while creating the professor profile. The user account was rolled back.");
+                _logger.LogError(ex, "Error creating professor profile for UserID {UserId}", userId);
+                return ServiceResult.Failed("An unexpected error occurred while creating the professor profile.");
             }
         }
 
-        public async Task<ServiceResult<UserDetailDto>> CreateUserAsync(RegisterDto registrationData)
-        {
-            if (registrationData.RoleName == "Student")
-            {
-                var dto = new CreateStudentByAdminDto
-                {
-                    Email = registrationData.Email,
-                    Password = registrationData.Password,
-                    FullName = registrationData.FullName,
-                    EmailConfirmed = true,
-                };
-                return await CreateStudentAsync(dto);
-            }
-            else if (registrationData.RoleName == "Professor")
-            {
-                var dto = new CreateProfessorByAdminDto
-                {
-                    Email = registrationData.Email,
-                    Password = registrationData.Password,
-                    FullName = registrationData.FullName,
-                    EmailConfirmed = true,
-                    // إذا كانت Specialization تساوي null، استخدم قيمة افتراضية مثل "Not specified"
-                    Specialization = registrationData.Specialization ?? "Not specified"
-                };
-                return await CreateProfessorAsync(dto);
-            }
-
-            return ServiceResult<UserDetailDto>.Failed("Unsupported role provided.");
-        }
+        // --- User Information Management ---
 
         public async Task<ServiceResult<UserDetailDto>> GetUserDetailsByIdAsync(Guid userId)
         {
@@ -192,20 +137,17 @@ namespace kalamon_University.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault(); // تعريف متغير جديد للدور
+            var userRole = roles.FirstOrDefault();
 
             var dto = _mapper.Map<UserDetailDto>(user);
-            dto.Role = userRole; // إسناد الدور الصحيح
+            dto.Role = userRole;
 
-            if (roles.Contains("Student")) // استخدم القائمة roles للتحقق
+            if (userRole == "Student")
             {
                 var student = await _studentRepository.GetByUserIdAsync(user.Id);
-                if (student != null)
-                {
-                    dto.StudentProfileId = student.UserId;
-                }
+                if (student != null) dto.StudentProfileId = student.UserId;
             }
-            else if (roles.Contains("Professor")) // استخدم القائمة roles للتحقق
+            else if (userRole == "Professor")
             {
                 var prof = await _professorRepository.GetByUserIdAsync(user.Id);
                 if (prof != null)
@@ -220,42 +162,31 @@ namespace kalamon_University.Services
 
         public async Task<ServiceResult<IEnumerable<UserDetailDto>>> GetAllUsersAsync(string? roleFilter = null)
         {
-            var usersQuery = _userManager.Users;
-            List<User> users;
+            IQueryable<User> usersQuery = _userManager.Users;
 
             if (!string.IsNullOrEmpty(roleFilter))
             {
-                users = (await _userManager.GetUsersInRoleAsync(roleFilter)).ToList();
+                // This is more efficient than getting all users and then filtering in-memory
+                var usersInRole = await _userManager.GetUsersInRoleAsync(roleFilter);
+                var userIdsInRole = usersInRole.Select(u => u.Id);
+                usersQuery = usersQuery.Where(u => userIdsInRole.Contains(u.Id));
             }
-            else
-            {
-                users = await usersQuery.ToListAsync();
-            }
+
+            var users = await usersQuery
+                .Include(u => u.ProfessorProfile) // Eager load profiles
+                .Include(u => u.StudentProfile)
+                .ToListAsync();
 
             var userDtos = new List<UserDetailDto>();
             foreach (var user in users)
             {
                 var dto = _mapper.Map<UserDetailDto>(user);
                 var roles = await _userManager.GetRolesAsync(user);
-                dto.Role = roles.FirstOrDefault(); // أخذ الدور الأول من القائمة
+                dto.Role = roles.FirstOrDefault();
 
-                if (dto.Role.Contains("Student"))
-                {
-                    var student = await _studentRepository.GetByUserIdAsync(user.Id);
-                    if (student != null)
-                    {
-                        dto.StudentProfileId = student.UserId;
-                    }
-                }
-                else if (dto.Role.Contains("Professor"))
-                {
-                    var prof = await _professorRepository.GetByUserIdAsync(user.Id);
-                    if (prof != null)
-                    {
-                        dto.ProfessorProfileId = prof.UserId;
-                        dto.Specialization = prof.Specialization;
-                    }
-                }
+                // Mapping from eager-loaded data is faster
+                if (user.ProfessorProfile != null) dto.Specialization = user.ProfessorProfile.Specialization;
+
                 userDtos.Add(dto);
             }
 
@@ -272,17 +203,15 @@ namespace kalamon_University.Services
 
             user.FullName = updateDto.FullName ?? user.FullName;
             user.Email = updateDto.Email ?? user.Email;
-            user.UserName = updateDto.Email ?? user.UserName; // Best practice to keep UserName and Email in sync
+            user.UserName = updateDto.Email ?? user.UserName;
 
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
             {
-                var errors = updateResult.Errors.Select(e => e.Description).ToList();
-                return ServiceResult<UserDetailDto>.Failed(errors);
+                return ServiceResult<UserDetailDto>.Failed(updateResult.Errors.Select(e => e.Description).ToList());
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-
             if (roles.Contains("Professor"))
             {
                 var professor = await _professorRepository.GetByUserIdAsync(user.Id);
@@ -293,7 +222,6 @@ namespace kalamon_University.Services
                 }
             }
 
-            // Return the updated details
             return await GetUserDetailsByIdAsync(userId);
         }
 
@@ -307,9 +235,7 @@ namespace kalamon_University.Services
                 return ServiceResult.Failed("User not found.");
             }
 
-            // The related Student/Professor profile will be deleted by the database's cascade delete constraint.
-            
-
+            // Deleting the user will trigger cascade delete on the profile if configured in the database
             var identityResult = await _userManager.DeleteAsync(user);
             if (!identityResult.Succeeded)
             {
@@ -321,6 +247,8 @@ namespace kalamon_University.Services
             _logger.LogInformation("Successfully deleted user with UserID {AppUserId}", userId);
             return ServiceResult.Succeeded("User deleted successfully.");
         }
+
+        // ... (Keep the rest of the methods like AssignRoleToUserAsync, Course Management, etc. as they are)
 
         // --- Role & Account Management ---
 
@@ -346,7 +274,7 @@ namespace kalamon_University.Services
             return ServiceResult.Succeeded("Role assigned successfully.");
         }
 
-      
+
         public async Task<ServiceResult> ConfirmUserEmailByAdminAsync(Guid userId, bool confirmedStatus)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -367,6 +295,20 @@ namespace kalamon_University.Services
         // --- Course Management by Admin ---
         public async Task<ServiceResult<CourseDetailDto>> CreateCourseAsync(CreateCourseDto courseDto)
         {
+            // الخطوة 1: التحقق من وجود البروفيسور (إذا تم توفير ID)
+            if (courseDto.ProfessorId != Guid.Empty) // تحقق مما إذا كان الـ Guid ليس القيمة الافتراضية الفارغة
+            {
+                var professorExists = await _context.Professors
+                                                .AnyAsync(p => p.UserId == courseDto.ProfessorId);
+
+                if (!professorExists)
+                {
+                    // إرجاع خطأ واضح للمستخدم بدلاً من خطأ 500
+                    return ServiceResult<CourseDetailDto>.Failed("Professor with the specified ID was not found.");
+                }
+            }
+
+            // الخطوة 2: إنشاء الكورس (بعد التأكد من صحة البيانات)
             var course = _mapper.Map<Course>(courseDto);
             course.TotalHours = course.PracticalHours + course.TheoreticalHours;
 
@@ -374,13 +316,14 @@ namespace kalamon_University.Services
             await _courseRepository.SaveChangesAsync();
 
             var resultDto = _mapper.Map<CourseDetailDto>(course);
+            // يمكنك تحسين هذا لجلب اسم الأستاذ مباشرة بعد الإنشاء إذا لزم الأمر
             return ServiceResult<CourseDetailDto>.Succeeded(resultDto, "Course created successfully.");
         }
 
-        
+
         public async Task<ServiceResult<CourseDetailDto>> GetCourseByIdAsync(int courseId)
         {
-            var course = await _courseRepository.GetByIdAsync(courseId);
+            var course = await _courseRepository.GetByIdAsync(courseId, includeProfessor: true);
             if (course == null)
             {
                 return ServiceResult<CourseDetailDto>.Failed("Course not found.");
@@ -389,7 +332,7 @@ namespace kalamon_University.Services
             return ServiceResult<CourseDetailDto>.Succeeded(dto);
         }
 
-       
+
         public async Task<ServiceResult<IEnumerable<CourseDetailDto>>> GetAllCoursesAsync(bool includeProfessorDetails = false)
         {
             var courses = await _courseRepository.GetAllCoursesAsync(includeProfessorDetails);
@@ -397,26 +340,42 @@ namespace kalamon_University.Services
             return ServiceResult<IEnumerable<CourseDetailDto>>.Succeeded(courseDtos);
         }
 
+
         public async Task<ServiceResult> UpdateCourseAsync(int courseId, UpdateCourseDto courseDto)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null)
+            {
                 return ServiceResult.Failed("Course not found.");
+            }
 
+            // الخطوة 1: التحقق من وجود البروفيسور الجديد قبل التعيين
+            // نفترض أن ProfessorId في UpdateCourseDto هو Guid? (nullable)
+            if (courseDto.ProfessorId.HasValue && courseDto.ProfessorId.Value != Guid.Empty)
+            {
+                // تحقق فقط إذا تم إرسال ID جديد وصالح
+                var professorExists = await _context.Professors
+                                                .AnyAsync(p => p.UserId == courseDto.ProfessorId.Value);
+
+                if (!professorExists)
+                {
+                    // أرجع خطأ واضحاً
+                    return ServiceResult.Failed("The new Professor ID provided was not found.");
+                }
+            }
+
+            // الخطوة 2: تحديث بيانات الكورس بعد التحقق
+            // AutoMapper سيقوم بنسخ كل الخصائص بما فيها ProfessorId الصالح (أو null)
             _mapper.Map(courseDto, course);
             course.TotalHours = course.PracticalHours + course.TheoreticalHours;
 
-           
-            //  await لأنها متزامنة
             _courseRepository.Update(course);
-            // -----------------
-
-            await _courseRepository.SaveChangesAsync(); 
+            await _courseRepository.SaveChangesAsync();
 
             return ServiceResult.Succeeded("Course updated successfully.");
         }
 
-    
+
         public async Task<ServiceResult> DeleteCourseAsync(int courseId)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
@@ -429,7 +388,7 @@ namespace kalamon_University.Services
             return ServiceResult.Succeeded("Course deleted successfully.");
         }
 
-   
+
         public async Task<ServiceResult> AssignProfessorToCourseAsync(int courseId, Guid professorUserId)
         {
             var course = await _courseRepository.GetByIdAsync(courseId);
@@ -445,6 +404,7 @@ namespace kalamon_University.Services
             }
 
             course.ProfessorId = professor.UserId;
+            _courseRepository.Update(course);
             await _courseRepository.SaveChangesAsync();
             return ServiceResult.Succeeded("Professor assigned to course successfully.");
         }
@@ -462,5 +422,8 @@ namespace kalamon_University.Services
 
             return ServiceResult.Succeeded("Professor unassigned from course successfully.");
         }
+
+
+
     }
 }

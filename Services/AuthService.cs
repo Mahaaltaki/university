@@ -1,5 +1,6 @@
 ﻿using kalamon_University.DTOs.Admin;
 using kalamon_University.DTOs.Auth;
+using kalamon_University.DTOs.Common;
 using kalamon_University.Interfaces;
 using kalamon_University.Models.Entities;
 using kalamon_University.Models.Enums;
@@ -22,20 +23,20 @@ namespace kalamon_University.Services
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IConfiguration _configuration;
-        private readonly IStudentService _studentPortalService;
+        private readonly IAdminService _adminService;
         private readonly IProfessorService _professorPortalService;
 
         public AuthService(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             IConfiguration configuration,
-            IStudentService studentPortalService,
+            IAdminService adminService,
             IProfessorService professorPortalService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
-            _studentPortalService = studentPortalService;
+            _adminService = adminService;
             _professorPortalService = professorPortalService;
         }
 
@@ -73,23 +74,40 @@ namespace kalamon_University.Services
             {
                 if (roleEnum == Role.Student)
                 {
-                    await _studentPortalService.AddAsync(new Student { UserId = user.Id });
+                    // استدعاء الدالة الجديدة والصحيحة
+                    var profileResult = await _adminService.CreateStudentProfileAsync(user.Id);
+
+                    if (!profileResult.Success)
+                    {
+                        // التراجع عن إنشاء المستخدم إذا فشل إنشاء الملف الشخصي
+                        await _userManager.DeleteAsync(user);
+                        return new AuthResultDto { Succeeded = false, Errors = profileResult.Errors };
+                    }
                 }
                 else if (roleEnum == Role.Professor)
                 {
-                    await _professorPortalService.AddAsync(new Professor { UserId = user.Id, Specialization = dto.Specialization ?? "غير محدد" });
+                    // استدعاء الدالة الجديدة والصحيحة
+                    var profileResult = await _adminService.CreateProfessorProfileAsync(user.Id, dto.Specialization);
+
+                    if (!profileResult.Success)
+                    {
+                        // التراجع عن إنشاء المستخدم إذا فشل إنشاء الملف الشخصي
+                        await _userManager.DeleteAsync(user);
+                        return new AuthResultDto { Succeeded = false, Errors = profileResult.Errors };
+                    }
                 }
             }
             catch (Exception ex)
             {
+                // هذا البلوك للتأمين ضد أي أخطاء غير متوقعة
                 await _userManager.DeleteAsync(user);
-                return new AuthResultDto { Succeeded = false, Errors = new List<string> { "فشل إنشاء الملف الشخصي: " + ex.Message } };
+                return new AuthResultDto { Succeeded = false, Errors = new List<string> { "An unexpected error occurred while creating the user profile: " + ex.Message } };
             }
 
+            // الحل: أضف مسار الإرجاع لحالة النجاح الكامل
             // عند نجاح التسجيل، قم بتسجيل الدخول مباشرة وإرجاع التوكن وبيانات المستخدم
             return await LoginAsync(new LoginDto { Email = dto.Email, Password = dto.Password });
         }
-
         public async Task<AuthResultDto> LoginAsync(LoginDto dto)
         {
             // نستخدم Include لجلب بيانات البروفايل مع المستخدم
@@ -131,12 +149,17 @@ namespace kalamon_University.Services
         private async Task<string> GenerateJwtToken(User user)
         {
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("FullName", user.FullName) // إضافة اسم المستخدم الكامل كـ claim
-            };
+        {
+        // هذا السطر هو مفتاح الحل
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        
+        // تأكد أيضاً من وجود هذه (مهمة جداً للأدوار)
+        new Claim(ClaimTypes.Role, user.Role.ToString()),
+        
+        // ... باقي الـ claims مثل الإيميل والاسم ...
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim("FullName", user.FullName)
+        };
 
             var userRoles = await _userManager.GetRolesAsync(user);
             foreach (var role in userRoles)
