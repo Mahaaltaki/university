@@ -18,9 +18,10 @@ namespace kalamon_University.Services
 
         public async Task<ServiceResult<NotificationDto>> SendNotificationAsync(CreateNotificationDto dto)
         {
+            // الخطوة 1: إنشاء الـ Entity  باستخدام TargetUserId
             var notification = new Notification
             {
-                UserId = dto.UserId,
+                UserId = dto.TargetUserId, // استخدام المستخدم المستهدف الصحيح
                 Message = dto.Message,
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false,
@@ -32,7 +33,19 @@ namespace kalamon_University.Services
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
 
-            return ServiceResult<NotificationDto>.Succeeded(new NotificationDto(notification));
+            // الخطوة 2: إنشاء كائن DTO للإرجاع من الـ Entity الذي تم حفظه
+            // هذا يضمن أن الـ Id و CreatedAt هي القيم النهائية من قاعدة البيانات
+            var resultDto = new NotificationDto
+            {
+                Id = notification.Id,
+                UserId = notification.UserId,
+                Message = notification.Message,
+                CreatedAt = notification.CreatedAt,
+                IsRead = notification.IsRead
+            };
+
+            // الخطوة 3: إرجاع كائن الـ DTO الصحيح
+            return ServiceResult<NotificationDto>.Succeeded(resultDto);
         }
 
         public async Task<ServiceResult> SendBulkNotificationAsync(IEnumerable<Guid> targetUserIds, string message, string? relatedEntityType = null, int? relatedEntityId = null)
@@ -59,17 +72,26 @@ namespace kalamon_University.Services
                 .Where(n => n.UserId == userId);
 
             if (onlyUnread)
+            {
                 query = query.Where(n => !n.IsRead);
+            }
 
             var notifications = await query
                 .OrderByDescending(n => n.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(n => new NotificationDto 
+                {
+                    Id = n.Id,
+                    UserId = n.UserId,
+                    Message = n.Message,
+                    CreatedAt = n.CreatedAt,
+                    IsRead = n.IsRead
+                })
                 .ToListAsync();
 
-            return ServiceResult<IEnumerable<NotificationDto>>.Succeeded(
-                notifications.Select(n => new NotificationDto(n))
-            );
+            // الآن notifications هي قائمة من النوع List<NotificationDto>
+            return ServiceResult<IEnumerable<NotificationDto>>.Succeeded(notifications);
         }
 
         public async Task<ServiceResult> MarkAsReadAsync(Guid userId, int notificationId)

@@ -102,5 +102,20 @@ namespace kalamon_University.Controllers
             var attendanceRecords = await _studentService.GetMyAttendanceForCourseAsync(studentIdNullable.Value, courseId);
             return Ok(attendanceRecords);
         }
+
+        // 5. واجهة جديدة لعرض إشعارات الطالب
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetMyNotifications()
+        {
+            var studentId = GetCurrentStudentId();
+            if (studentId == null)
+            {
+                return Unauthorized("Invalid or missing user ID in token.");
+            }
+
+            var notifications = await _studentService.GetMyNotificationsAsync(studentId.Value);
+
+            return Ok(notifications);
+        }
     }
 }

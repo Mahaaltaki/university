@@ -9,6 +9,7 @@ using kalamon_University.Interfaces;
 using kalamon_University.DTOs.Course;
 using kalamon_University.DTOs.Common;
 using kalamon_University.Models.Entities;
+using kalamon_University.DTOs.Notification;
 
     namespace kalamon_University.Services
 {
@@ -147,9 +148,34 @@ using kalamon_University.Models.Entities;
                 throw;
             }
         }
+        /// <inheritdoc />
+        public async Task<IEnumerable<NotificationDto>> GetMyNotificationsAsync(Guid studentId)
+        {
+            try
+            {
+                var notifications = await _context.Notifications
+                                                  .Where(n => n.UserId == studentId)
+                                                  .OrderByDescending(n => n.CreatedAt) // عرض الأحدث أولاً
+                                                  .Select(n => new NotificationDto // تحويل النتيجة إلى DTO
+                                                  {
+                                                      Id = n.Id,
+                                                      Message = n.Message,
+                                                      CreatedAt = n.CreatedAt,
+                                                      IsRead = n.IsRead
+                                                  })
+                                                  .AsNoTracking()
+                                                  .ToListAsync();
+                return notifications;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "حدث خطأ أثناء جلب إشعارات الطالب {StudentId}", studentId);
+                throw; // أو تعامل مع الخطأ حسب متطلبات التطبيق
+            }
+        }
 
         #endregion
 
-        
+
     }
 }

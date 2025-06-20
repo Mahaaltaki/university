@@ -1,11 +1,10 @@
 ﻿//kalamon_University/DTOs/ProfessorPortal/CourseTaughtDto.cs
 namespace kalamon_University.DTOs.ProfessorPortal
-{
-    public record CourseTaughtDto
+{ //لعرض بيانات الكورس الأساسية للأستاذ
+    public record ProfessorCourseDto
     {
         public int CourseId { get; init; }
         public string CourseName { get; init; }
-        public string CourseCode { get; init; }
         public int EnrolledStudentsCount { get; init; } // يتم حسابه
         public int PracticalHours { get; init; }
         public int TheoreticalHours { get; init; }

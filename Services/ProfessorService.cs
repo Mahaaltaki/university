@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using kalamon_University.Data; // افترض أن DbContext موجود في هذا المسار
+using kalamon_University.Data; 
 using kalamon_University.Interfaces;
 using kalamon_University.Models.Entities;
+using kalamon_University.DTOs.Common;
+using kalamon_University.DTOs.Notification;
+using kalamon_University.DTOs.ProfessorPortal;
 
 namespace kalamon_University.Services
 {
@@ -64,86 +67,125 @@ namespace kalamon_University.Services
                 throw;
             }
         }
+        #region New Professor-Specific Operations
 
-        /// <inheritdoc />
-        public async Task<Professor> AddAsync(Professor professor)
+        public async Task<IEnumerable<ProfessorCourseDto>> GetMyCoursesAsync(Guid professorId)
         {
-            if (professor == null)
-            {
-                throw new ArgumentNullException(nameof(professor));
-            }
-
-            try
-            {
-                await _context.Professors.AddAsync(professor);
-                await _context.SaveChangesAsync();
-                return professor;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "حدث خطأ أثناء إضافة أستاذ جديد.");
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task UpdateAsync(Professor professor)
-        {
-            if (professor == null)
-            {
-                throw new ArgumentNullException(nameof(professor));
-            }
-
-            // تحقق من وجود الأستاذ قبل محاولة التحديث لتجنب أخطاء غير متوقعة.
-            var existingProfessor = await _context.Professors.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == professor.UserId);
-            if (existingProfessor == null)
-            {
-                throw new KeyNotFoundException($"لم يتم العثور على أستاذ بالمعرف: {professor.UserId}");
-            }
-
-            _context.Entry(professor).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError(ex, "حدث خطأ تضارب أثناء تحديث بيانات الأستاذ ذو المعرف: {ProfessorId}", professor.UserId);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "حدث خطأ أثناء تحديث بيانات الأستاذ ذو المعرف: {ProfessorId}", professor.UserId);
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<bool> DeleteAsync(Guid professorId)
-        {
-            try
-            {
-                var professorToDelete = await _context.Professors.FindAsync(professorId);
-
-                if (professorToDelete == null)
+            return await _context.Courses
+                .Where(c => c.ProfessorId == professorId)
+                .Select(c => new ProfessorCourseDto
                 {
-                    _logger.LogWarning("محاولة حذف أستاذ غير موجود بالمعرف: {ProfessorId}", professorId);
-                    return false;
-                }
-
-                _context.Professors.Remove(professorToDelete);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("تم حذف الأستاذ ذو المعرف: {ProfessorId} بنجاح.", professorId);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                // قد يحدث خطأ إذا كان الأستاذ مرتبطًا بمواد لا يمكن حذفها (بسبب قيود المفتاح الأجنبي)
-                _logger.LogError(ex, "حدث خطأ أثناء حذف الأستاذ ذو المعرف: {ProfessorId}", professorId);
-                throw;
-            }
+                    CourseId = c.Id,
+                    CourseName = c.Name,
+                    TotalHours = c.TotalHours
+                })
+                .AsNoTracking()
+                .ToListAsync();
         }
+
+        public async Task<ServiceResult<IEnumerable<EnrolledStudentDto>>> GetStudentsInCourseAsync(Guid professorId, int courseId)
+        {
+            // خطوة أمان هامة: التحقق من أن هذا الكورس يخص الأستاذ الحالي
+            var isHisCourse = await _context.Courses.AnyAsync(c => c.Id == courseId && c.ProfessorId == professorId);
+            if (!isHisCourse)
+            {
+                return ServiceResult<IEnumerable<EnrolledStudentDto>>.Failed("Course not found or you are not assigned to it.");
+            }
+
+            var students = await _context.Enrollments
+                .Where(e => e.CourseId == courseId)
+                .Include(e => e.Student.User) // للوصول لاسم الطالب
+                .Select(e => new EnrolledStudentDto
+                {
+                    StudentId = e.StudentId,
+                    FullName = e.Student.User.FullName,
+                    Email = e.Student.User.Email
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return ServiceResult<IEnumerable<EnrolledStudentDto>>.Succeeded(students);
+        }
+
+        public async Task<ServiceResult<IEnumerable<AttendanceRecordDto>>> GetAttendanceForCourseAsync(Guid professorId, int courseId)
+        {
+            var isHisCourse = await _context.Courses.AnyAsync(c => c.Id == courseId && c.ProfessorId == professorId);
+            if (!isHisCourse)
+            {
+                return ServiceResult<IEnumerable<AttendanceRecordDto>>.Failed("Course not found or you are not assigned to it.");
+            }
+
+            var attendanceRecords = await _context.Attendances
+                .Where(a => a.CourseId == courseId)
+                .Include(a => a.Student.User)
+                .OrderBy(a => a.Student.User.FullName)
+                .ThenByDescending(a => a.SessionDate)
+                .Select(a => new AttendanceRecordDto
+                {
+                    AttendanceId = a.Id,
+                    StudentId = a.StudentId,
+                    StudentName = a.Student.User.FullName,
+                    SessionDate = a.SessionDate,
+                    IsPresent = a.IsPresent,
+                    Notes = a.Notes
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return ServiceResult<IEnumerable<AttendanceRecordDto>>.Succeeded(attendanceRecords);
+        }
+
+        public async Task<ServiceResult> SendNotificationToCourseAsync(Guid professorId, int courseId, string message)
+        {
+            var isHisCourse = await _context.Courses.AnyAsync(c => c.Id == courseId && c.ProfessorId == professorId);
+            if (!isHisCourse)
+            {
+                return ServiceResult.Failed("Course not found or you are not assigned to it.");
+            }
+
+            // جلب جميع الطلاب المسجلين في هذا الكورس
+            var studentIds = await _context.Enrollments
+                .Where(e => e.CourseId == courseId)
+                .Select(e => e.StudentId)
+                .ToListAsync();
+
+            if (!studentIds.Any())
+            {
+                return ServiceResult.Failed("No students are enrolled in this course to notify.");
+            }
+
+            var notifications = studentIds.Select(studentId => new Notification
+            {
+                UserId = studentId,
+                Message = message,
+                CreatedAt = DateTime.UtcNow,
+                RelatedEntityType = "Course",
+                RelatedEntityId = courseId
+            }).ToList();
+
+            await _context.Notifications.AddRangeAsync(notifications);
+            await _context.SaveChangesAsync();
+
+            return ServiceResult.Succeeded($"Notification sent to {notifications.Count} students.");
+        }
+
+        public async Task<IEnumerable<NotificationDto>> GetMyNotificationsAsync(Guid professorId)
+        {
+            return await _context.Notifications
+                .Where(n => n.UserId == professorId)
+                .OrderByDescending(n => n.CreatedAt)
+                .Select(n => new NotificationDto
+                {
+                    Id = n.Id,
+                    Message = n.Message,
+                    CreatedAt = n.CreatedAt,
+                    IsRead = n.IsRead
+                })
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        #endregion
+
     }
 }

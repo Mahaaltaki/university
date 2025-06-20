@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using kalamon_University.DTOs.Common;
 using kalamon_University.DTOs.Course;
+using kalamon_University.DTOs.Notification;
 using kalamon_University.Models.Entities;
 
 namespace kalamon_University.Interfaces
@@ -45,7 +46,8 @@ namespace kalamon_University.Interfaces
         /// <param name="courseId">معرف الكورس.</param>
         /// <returns>قائمة بسجلات الحضور الخاصة بالطالب في ذلك الكورس.</returns>
         Task<IEnumerable<Attendance>> GetMyAttendanceForCourseAsync(Guid studentId, int courseId);
-
+        //
+        Task<IEnumerable<NotificationDto>> GetMyNotificationsAsync(Guid studentId);
         #endregion
     }
 }
