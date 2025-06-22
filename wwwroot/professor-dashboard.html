@@ -1,0 +1,473 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الأستاذ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .list-group-item {
+            cursor: pointer;
+        }
+
+            .list-group-item.active {
+                background-color: #007bff;
+                border-color: #007bff;
+            }
+
+        #notifications-list button {
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- قسم تسجيل الدخول -->
+    <div id="login-section" class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">تسجيل الدخول</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" placeholder="professor@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">كلمة المرور</label>
+                            <input type="password" class="form-control" id="password">
+                        </div>
+                        <button onclick="login()" class="btn btn-primary">دخول</button>
+                        <div id="login-error" class="text-danger mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم الرئيسية (مخفية افتراضياً) -->
+    <div id="dashboard-section" class="container mt-4" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h3">لوحة تحكم الأستاذ</h1>
+            <div>
+                <button class="btn btn-secondary btn-sm" onclick="fetchNotifications()">
+                    الإشعارات <span id="notifications-badge" class="badge bg-danger" style="display: none;"></span>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="logout()">تسجيل الخروج</button>
+            </div>
+        </div>
+
+        <!-- قسم الإشعارات -->
+        <div id="notifications-container" class="alert alert-info" style="display: none;">
+            <h5>الإشعارات</h5>
+            <ul id="notifications-list" class="list-group"></ul>
+        </div>
+
+        <div class="row">
+            <!-- قائمة الكورسات -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">الكورسات الخاصة بي</div>
+                    <ul id="courses-list" class="list-group list-group-flush">
+                        <!-- سيتم تعبئة الكورسات هنا عبر JavaScript -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- تفاصيل الكورس المحدد -->
+            <div class="col-md-8">
+                <div id="course-details" class="card" style="display: none;">
+                    <div class="card-header" id="course-details-header"></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-success btn-sm me-2" onclick="exportAndNotifyAdmins()">تصدير الحضور وإبلاغ الإدارة</button>
+                            <button class="btn btn-info btn-sm" onclick="showNotificationModal()">إرسال إشعار للطلاب</button>
+                        </div>
+
+                        <!-- عرض الطلاب المسجلين -->
+                        <h5>الطلاب المسجلون</h5>
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>اسم الطالب</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="students-list"></tbody>
+                        </table>
+                        <hr>
+                        <!-- عرض الحضور -->
+                        <h5>سجل الحضور</h5>
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>اسم الطالب</th>
+                                    <th>التاريخ</th>
+                                    <th>الحالة</th>
+                                    <th>ملاحظات</th>
+                                    <th>تعديل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-list"></tbody>
+                        </table>
+
+                        <!-- نموذج إضافة حضور -->
+                        <div class="mt-3">
+                            <h6>إضافة سجل حضور جديد</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <select id="add-attendance-student" class="form-select"></select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="date" id="add-attendance-date" class="form-control">
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="add-attendance-status" class="form-select">
+                                        <option value="true">حاضر</option>
+                                        <option value="false">غائب</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-primary w-100" onclick="addAttendance()">إضافة</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div id="welcome-message" class="text-center p-5">
+                    <h4>الرجاء اختيار كورس من القائمة لعرض التفاصيل.</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal لإرسال إشعار -->
+    <div class="modal fade" id="notificationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">إرسال إشعار لطلاب الكورس</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="notification-message" class="form-control" rows="4" placeholder="اكتب رسالتك هنا..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" onclick="sendNotificationToStudents()">إرسال</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE_URL = 'https://localhost:7199'; // <-- غيّر هذا الرابط إلى رابط الـ API الخاص بك
+        let authToken = localStorage.getItem('authToken');
+        let selectedCourseId = null;
+
+        // التحقق من وجود توكن عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            if (authToken) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                fetchMyCourses();
+                fetchNotifications();
+            }
+        });
+
+        // --- دوال المصادقة ---
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginErrorDiv = document.getElementById('login-error');
+            loginErrorDiv.textContent = '';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/Auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.succeeded) {
+                    throw new Error(result.errors ? result.errors.join(', ') : 'فشل تسجيل الدخول');
+                }
+
+                // التأكد من أن المستخدم هو أستاذ
+                if(result.user.role.toLowerCase() !== 'professor') {
+                     throw new Error('هذه اللوحة مخصصة للأساتذة فقط.');
+                }
+
+                authToken = result.token;
+                localStorage.setItem('authToken', authToken);
+
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                fetchMyCourses();
+
+            } catch (error) {
+                loginErrorDiv.textContent = error.message;
+            }
+        }
+
+        function logout() {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('courses-list').innerHTML = '';
+            document.getElementById('course-details').style.display = 'none';
+        }
+
+        // --- دوال جلب البيانات ---
+        async function fetchMyCourses() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/Professor/my-courses`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('فشل جلب الكورسات');
+                const courses = await response.json();
+
+                const list = document.getElementById('courses-list');
+                list.innerHTML = '';
+                courses.forEach(course => {
+                    const item = document.createElement('li');
+                    item.className = 'list-group-item';
+                    item.textContent = course.courseName;
+                    item.onclick = () => selectCourse(course.courseId, item);
+                    list.appendChild(item);
+                });
+
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        async function selectCourse(courseId, element) {
+            selectedCourseId = courseId;
+             document.getElementById('welcome-message').style.display = 'none';
+
+            // تفعيل الكورس المحدد في القائمة
+            document.querySelectorAll('#courses-list .list-group-item').forEach(li => li.classList.remove('active'));
+            element.classList.add('active');
+
+            document.getElementById('course-details-header').textContent = `تفاصيل: ${element.textContent}`;
+            document.getElementById('course-details').style.display = 'block';
+
+            // جلب الطلاب والحضور
+            await fetchStudents(courseId);
+            await fetchAttendance(courseId);
+        }
+
+        async function fetchStudents(courseId) {
+            const response = await fetch(`${API_BASE_URL}/api/Professor/courses/${courseId}/students`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const result = await response.json();
+            const studentsList = document.getElementById('students-list');
+            const studentSelect = document.getElementById('add-attendance-student');
+            studentsList.innerHTML = '';
+            studentSelect.innerHTML = '<option value="">اختر طالب...</option>';
+
+            result.forEach(student => {
+                // إضافة للصفحة
+                const row = `<tr>
+                                <td>${student.fullName}</td>
+                                <td>${student.email}</td>
+                                <td><button class="btn btn-outline-primary btn-sm" disabled>إجراء</button></td>
+                             </tr>`;
+                studentsList.innerHTML += row;
+
+                // إضافة للقائمة المنسدلة
+                const option = `<option value="${student.studentId}">${student.fullName}</option>`;
+                studentSelect.innerHTML += option;
+            });
+        }
+
+        async function fetchAttendance(courseId) {
+            const response = await fetch(`${API_BASE_URL}/api/Professor/courses/${courseId}/attendance`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const result = await response.json();
+            const attendanceList = document.getElementById('attendance-list');
+            attendanceList.innerHTML = '';
+
+            result.forEach(record => {
+                const status = record.isPresent ? '<span class="badge bg-success">حاضر</span>' : '<span class="badge bg-danger">غائب</span>';
+                const row = `<tr>
+                                <td>${record.studentName}</td>
+                                <td>${new Date(record.sessionDate).toLocaleDateString()}</td>
+                                <td>${status}</td>
+                                <td>${record.notes || ''}</td>
+                                <td><button class="btn btn-warning btn-sm" onclick="deleteAttendance(${record.id})">حذف</button></td>
+                             </tr>`;
+                attendanceList.innerHTML += row;
+            });
+        }
+
+        async function fetchNotifications() {
+            const response = await fetch(`${API_BASE_URL}/api/Professor/notifications`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const notifications = await response.json();
+
+            const list = document.getElementById('notifications-list');
+            const badge = document.getElementById('notifications-badge');
+            list.innerHTML = '';
+
+            const unreadCount = notifications.filter(n => !n.isRead).length;
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            notifications.forEach(n => {
+                const item = `<li class="list-group-item d-flex justify-content-between align-items-center ${n.isRead ? 'text-muted' : ''}">
+                                <div>
+                                    <small>${new Date(n.createdAt).toLocaleString()}</small><br>
+                                    ${n.message}
+                                </div>
+                                <button class="btn btn-outline-secondary btn-sm" disabled>تم</button>
+                              </li>`;
+                list.innerHTML += item;
+            });
+            document.getElementById('notifications-container').style.display = 'block';
+        }
+
+        // --- دوال الإجراءات ---
+
+        function showNotificationModal() {
+            if (!selectedCourseId) {
+                alert('الرجاء اختيار كورس أولاً.');
+                return;
+            }
+            const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+            modal.show();
+        }
+
+        async function sendNotificationToStudents() {
+            const message = document.getElementById('notification-message').value;
+            if (!message.trim()) {
+                alert('الرجاء كتابة رسالة.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/Professor/courses/${selectedCourseId}/notify`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+                if(!response.ok) throw new Error('فشل إرسال الإشعار');
+
+                alert('تم إرسال الإشعار بنجاح.');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('notificationModal'));
+                modal.hide();
+                document.getElementById('notification-message').value = '';
+
+            } catch(error) {
+                alert(error.message);
+            }
+        }
+
+        async function addAttendance() {
+            const studentId = document.getElementById('add-attendance-student').value;
+            const sessionDate = document.getElementById('add-attendance-date').value;
+            const isPresent = document.getElementById('add-attendance-status').value === 'true';
+
+            if (!studentId || !sessionDate) {
+                alert('الرجاء اختيار طالب وتحديد التاريخ.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/Professor/courses/${selectedCourseId}/attendance`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ studentId, sessionDate, isPresent, notes: '' })
+                });
+
+                if(!response.ok) {
+                    const errorResult = await response.json();
+                    throw new Error(errorResult.errors ? errorResult.errors.join(', ') : 'فشل إضافة الحضور');
+                }
+
+                alert('تم إضافة سجل الحضور بنجاح.');
+                fetchAttendance(selectedCourseId); // تحديث القائمة
+
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        async function deleteAttendance(attendanceId) {
+            if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) return;
+
+            try {
+                 const response = await fetch(`${API_BASE_URL}/api/Professor/courses/${selectedCourseId}/attendance/${attendanceId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if(!response.ok) throw new Error('فشل حذف السجل.');
+
+                alert('تم الحذف بنجاح.');
+                fetchAttendance(selectedCourseId); // تحديث القائمة
+
+            } catch(error) {
+                alert(error.message);
+            }
+        }
+
+        async function exportAndNotifyAdmins() {
+             if (!selectedCourseId) {
+                alert('الرجاء اختيار كورس أولاً.');
+                return;
+            }
+            if (!confirm('هل أنت متأكد من رغبتك في تصدير سجل الحضور وإبلاغ الإدارة؟')) return;
+
+            try {
+                 const response = await fetch(`${API_BASE_URL}/api/Professor/courses/${selectedCourseId}/attendance/export-and-notify`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const result = await response.json();
+                 if(!response.ok) throw new Error(result.errors ? result.errors.join(', ') : 'فشل عملية التصدير');
+
+                 alert(result.message || 'تم إبلاغ الإدارة بنجاح.');
+
+            } catch(error) {
+                alert(error.message);
+            }
+        }
+
+    </script>
+</body>
+</html>

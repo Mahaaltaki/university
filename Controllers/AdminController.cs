@@ -5,6 +5,10 @@ using kalamon_University.DTOs.Admin;
 using kalamon_University.DTOs.Auth;
 using kalamon_University.DTOs.Course;
 using kalamon_University.DTOs.Common;
+using kalamon_University.DTOs.Notification;
+using Microsoft.EntityFrameworkCore;
+using kalamon_University.Data;
+using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic; // Required for IEnumerable
@@ -19,10 +23,24 @@ namespace kalamon_University.Controllers
     {
         private readonly IAdminService _adminService;
         private readonly IAuthService _authService;
-        public AdminController(IAdminService adminService, IAuthService authService)
+        private readonly IFileStorageService _fileStorage;
+        private readonly AppDbContext _context; // ستحتاج لحقن سياق قاعدة البيانات
+
+        public AdminController(IAdminService adminService, IAuthService authService , IFileStorageService fileStorage, AppDbContext context)
         {
             _adminService = adminService;
-            _authService = authService; // 
+            _authService = authService;
+            _fileStorage = fileStorage;
+            _context = context;
+        }// دالة مساعدة لجلب معرف المسؤول الحالي
+        private Guid? GetCurrentAdminId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var userId))
+            {
+                return userId;
+            }
+            return null;
         }
 
         #region User Management
@@ -178,9 +196,10 @@ namespace kalamon_University.Controllers
         [ProducesResponseType(200)]
         [ProducesResponseType(typeof(ServiceResult), 400)]
         [ProducesResponseType(typeof(ServiceResult), 404)]
-        public async Task<IActionResult> AssignProfessorToCourse(int courseId, [FromBody] AssignProfessorDto dto)
+        public async Task<IActionResult> AssignProfessorToCourse(int courseId,  AssignProfessorDto dto)
         {
             var result = await _adminService.AssignProfessorToCourseAsync(courseId, dto.ProfessorUserId);
+           
             return HandleResult(result);
         }
 
@@ -247,6 +266,36 @@ namespace kalamon_University.Controllers
             // سيعيد توجيه المتصفح إلى ملف admin.html الموجود في مجلد wwwroot
             return Redirect("/admin.html");
         }
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetMyNotifications()
+        {
+            var adminId = GetCurrentAdminId();
+            if (adminId == null)
+            {
+                return Unauthorized();
+            }
+
+            // الخطوة 1: جلب البيانات من قاعدة البيانات كـ List<Notification>
+            var notificationEntities = await _context.Notifications
+                .Where(n => n.UserId == adminId.Value)
+                .OrderByDescending(n => n.CreatedAt)
+                .AsNoTracking() // <-- إضافة جيدة لتحسين الأداء للقراءة فقط
+                .ToListAsync(); // <-- استدعاء ToListAsync هنا على كيان قاعدة البيانات
+
+            // الخطوة 2: تحويل القائمة الناتجة إلى List<NotificationDto> في الذاكرة
+            var notificationsDto = notificationEntities.Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                Message = n.Message,
+                CreatedAt = n.CreatedAt,
+                IsRead = n.IsRead,
+                RelatedEntityType = n.RelatedEntityType,
+                RelatedEntityName = n.RelatedEntityName
+            }).ToList(); // <-- استخدم .ToList() العادية هنا لأننا نعمل في الذاكرة
+
+            return Ok(notificationsDto);
+        }
+
     }
     // DTOs that might be needed for the controller
     public class AssignRoleDto { public string RoleName { get; set; } }

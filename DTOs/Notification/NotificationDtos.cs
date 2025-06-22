@@ -11,8 +11,9 @@ namespace kalamon_University.DTOs.Notification
         public string Message { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public bool IsRead { get; set; }
-       
-       
+        public string? RelatedEntityType { get; set; }
+        public string? RelatedEntityName { get; set; }
+
     }
 
 }

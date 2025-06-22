@@ -12,6 +12,10 @@ namespace kalamon_University.DTOs.Attendance
         public Guid StudentId { get; set; }
 
         [Required]
+        public string StudentName { get; set; }
+
+
+        [Required]
         public int CourseId { get; set; }
 
         [Required]

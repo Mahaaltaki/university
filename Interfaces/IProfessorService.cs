@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using kalamon_University.DTOs.Attendance;
 using kalamon_University.DTOs.Common;
 using kalamon_University.DTOs.Notification;
 using kalamon_University.DTOs.ProfessorPortal;
@@ -38,8 +39,7 @@ namespace kalamon_University.Interfaces
         /// <summary>
         /// ÌáÈ ÓÌá ÇáÍÖæÑ áÌãíÚ ÇáØáÇÈ İí ßæÑÓ ãÚíä íÏÑÓå ÇáÃÓÊÇĞ.
         /// </summary>
-        Task<ServiceResult<IEnumerable<AttendanceRecordDto>>> GetAttendanceForCourseAsync(Guid professorId, int courseId);
-
+        Task<ServiceResult<IEnumerable<DTOs.Attendance.AttendanceRecordDto>>> GetAttendanceForCourseAsync(Guid professorId, int courseId);
         /// <summary>
         /// ÅÑÓÇá ÅÔÚÇÑ áÌãíÚ ÇáØáÇÈ ÇáãÓÌáíä İí ßæÑÓ ãÚíä.
         /// </summary>
@@ -49,6 +49,27 @@ namespace kalamon_University.Interfaces
         /// ÌáÈ ÇáÅÔÚÇÑÇÊ ÇáÎÇÕÉ ÈÇáÃÓÊÇĞ.
         /// </summary>
         Task<IEnumerable<NotificationDto>> GetMyNotificationsAsync(Guid professorId);
-       
+
+        /// <summary>
+        /// ÅÖÇİÉ ÓÌá ÍÖæÑ ÌÏíÏ áØÇáÈ İí ßæÑÓ ãÚíä.
+        /// </summary>
+        Task<ServiceResult<DTOs.Attendance.AttendanceRecordDto>> AddAttendanceAsync(Guid professorId, int courseId, CreateAttendanceDto dto);
+
+        /// <summary>
+        /// ÊÚÏíá ÓÌá ÍÖæÑ ãæÌæÏ.
+        /// </summary>
+        Task<ServiceResult> UpdateAttendanceAsync(Guid professorId, int courseId, int attendanceId, UpdateAttendanceDto dto);
+
+        /// <summary>
+        /// ÍĞİ ÓÌá ÍÖæÑ.
+        /// </summary>
+        Task<ServiceResult> DeleteAttendanceAsync(Guid professorId, int courseId, int attendanceId);
+
+        // --- ÏÇáÉ ÊÕÏíÑ ÇáÅßÓá ---
+
+        /// <summary>
+        /// íæáÏ ÊŞÑíÑ ÇáÍÖæÑ ßãáİ ÅßÓá æíÑÓá ÅÔÚÇÑğÇ ááÜ Admins ãÚ ÑÇÈØ ÇáÊÍãíá.
+        /// </summary>
+        Task<ServiceResult> ExportAndNotifyAdminsAsync(Guid professorId, int courseId);
     }
 }

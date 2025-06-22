@@ -54,4 +54,28 @@ namespace kalamon_University.DTOs.Attendance
         string? Notes
     );
 
+    // DTO لإنشاء سجل حضور جديد لطالب
+    public class CreateAttendanceDto
+    {
+        [Required]
+        public Guid StudentId { get; set; }
+
+        [Required]
+        public DateTime SessionDate { get; set; } = DateTime.UtcNow.Date;
+
+        [Required]
+        public bool IsPresent { get; set; }
+
+        public string? Notes { get; set; }
+    }
+
+    // DTO لتعديل سجل حضور موجود
+    public class UpdateAttendanceDto
+    {
+        [Required]
+        public bool IsPresent { get; set; }
+
+        public string? Notes { get; set; }
+    }
+
 }

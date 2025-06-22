@@ -83,7 +83,7 @@ builder.Services.AddScoped<IExcelProcessingService, ExcelProcessingService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IProfessorService, ProfessorService>();
 builder.Services.AddScoped < kalamon_University.Interfaces.IAuthService,kalamon_University.Services.AuthService>();
-
+builder.Services.AddScoped<IFileStorageService, LocalStorageService>();
 // 6. AutoMapper Configuration
 // íÈÍË İí ÇáãÔÑæÚ ÈÃßãáå Úä Ãí ßáÇÓ íÑË ãä AutoMapper.Profile
 builder.Services.AddAutoMapper(typeof(Program));

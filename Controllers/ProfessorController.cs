@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using kalamon_University.DTOs.ProfessorPortal; 
+using kalamon_University.DTOs.ProfessorPortal;
+using kalamon_University.Models.Entities;
 
 namespace kalamon_University.Controllers
 {
@@ -104,5 +105,76 @@ namespace kalamon_University.Controllers
             var notifications = await _professorService.GetMyNotificationsAsync(professorId.Value);
             return Ok(notifications);
         }
+        // --- Endpoints للتحكم بالحضور ---
+
+        // 6. إضافة سجل حضور جديد
+        [HttpPost("courses/{courseId}/Add-attendance")]
+        public async Task<IActionResult> AddAttendance(int courseId, [FromBody] DTOs.Attendance.CreateAttendanceDto dto)
+        {
+            var professorId = GetCurrentProfessorId();
+            if (professorId == null) return Unauthorized();
+
+            var result = await _professorService.AddAttendanceAsync(professorId.Value, courseId, dto);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return CreatedAtAction(nameof(GetCourseAttendance), new { courseId = courseId }, result.Data);
+        }
+
+        // 7. تعديل سجل حضور
+        [HttpPut("courses/{courseId}/attendance/{attendanceId}")]
+        public async Task<IActionResult> UpdateAttendance(int courseId, int attendanceId, [FromBody] DTOs.Attendance.UpdateAttendanceDto dto)
+        {
+            var professorId = GetCurrentProfessorId();
+            if (professorId == null) return Unauthorized();
+
+            var result = await _professorService.UpdateAttendanceAsync(professorId.Value, courseId, attendanceId, dto);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return NoContent(); // أو Ok(result)
+        }
+
+        // 8. حذف سجل حضور
+        [HttpDelete("courses/{courseId}/attendance/{attendanceId}")]
+        public async Task<IActionResult> DeleteAttendance(int courseId, int attendanceId)
+        {
+            var professorId = GetCurrentProfessorId();
+            if (professorId == null) return Unauthorized();
+
+            var result = await _professorService.DeleteAttendanceAsync(professorId.Value, courseId, attendanceId);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return NoContent();
+        }
+
+        // --- Endpoint لتصدير الإكسل ---
+
+        // 9. تصدير وإرسال تقرير الحضور كإشعار للمسؤولين
+        #region Notifications & Reporting
+
+  
+
+        // POST: api/professor/courses/{courseId}/attendance/export-and-notify
+        [HttpPost("courses/{courseId}/attendance/export-and-notify")]
+        public async Task<IActionResult> ExportAndNotifyAdmins(int courseId)
+        {
+            var professorId = GetCurrentProfessorId();
+            if (professorId == null) return Unauthorized("Invalid token.");
+
+            var result = await _professorService.ExportAndNotifyAdminsAsync(professorId.Value, courseId);
+
+            if (!result.Success)
+            {
+                return BadRequest(result); // أو BadRequest(result.Errors)
+            }
+            return Ok(result);
+        }
+
+        #endregion
     }
 }
